@@ -17,8 +17,6 @@ class SlidingWindow {
       currentWindow[currentWindowFillSize - 1] = singleByte;
       return currentWindowFillSize == WINDOW_SIZE;
     }
-    // move window
-    /** [A B C D E] └───────┐ ▼ [B C D E E] */
     System.arraycopy(currentWindow, 1, currentWindow, 0, WINDOW_SIZE - 1);
     currentWindow[currentWindowFillSize - 1] = singleByte;
     return true;
