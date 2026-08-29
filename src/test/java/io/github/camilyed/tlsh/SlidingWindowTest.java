@@ -55,6 +55,26 @@ class SlidingWindowTest {
   }
 
   @Test
+  void shouldReturnNoTripletsBeforeWindowIsFull() {
+    // given
+    SlidingWindow slidingWindow = new SlidingWindow();
+    byte[] firstFourBytes = {'A', 'B', 'C', 'D'};
+
+    // then
+    assertThat(slidingWindow.triplets()).as("triplets before adding any bytes").isEmpty();
+
+    for (int index = 0; index < firstFourBytes.length; index++) {
+      // when
+      slidingWindow.addByte(firstFourBytes[index]);
+
+      // then
+      assertThat(slidingWindow.triplets())
+          .as("triplets after adding %s byte(s)", index + 1)
+          .isEmpty();
+    }
+  }
+
+  @Test
   void shouldReturnWindowTriplets() {
     // given
     SlidingWindow slidingWindow = new SlidingWindow();
@@ -87,5 +107,29 @@ class SlidingWindowTest {
     assertThat(triplets.get(3)).containsExactly(new byte[] {'C', 'D', 'F'});
     assertThat(triplets.get(4)).containsExactly(new byte[] {'C', 'E', 'F'});
     assertThat(triplets.get(5)).containsExactly(new byte[] {'D', 'E', 'F'});
+  }
+
+  @Test
+  void shouldKeepGeneratingTripletsAfterMultipleWindowShifts() {
+    // given
+    SlidingWindow slidingWindow = new SlidingWindow();
+    byte[] bytes = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'};
+
+    // when
+    for (byte currentByte : bytes) {
+      slidingWindow.addByte(currentByte);
+    }
+
+    // then
+    assertThat(slidingWindow.currentWindow()).containsExactly(new byte[] {'D', 'E', 'F', 'G', 'H'});
+
+    List<byte[]> triplets = slidingWindow.triplets();
+    assertThat(triplets).hasSize(6);
+    assertThat(triplets.get(0)).containsExactly(new byte[] {'D', 'E', 'H'});
+    assertThat(triplets.get(1)).containsExactly(new byte[] {'D', 'F', 'H'});
+    assertThat(triplets.get(2)).containsExactly(new byte[] {'D', 'G', 'H'});
+    assertThat(triplets.get(3)).containsExactly(new byte[] {'E', 'F', 'H'});
+    assertThat(triplets.get(4)).containsExactly(new byte[] {'E', 'G', 'H'});
+    assertThat(triplets.get(5)).containsExactly(new byte[] {'F', 'G', 'H'});
   }
 }

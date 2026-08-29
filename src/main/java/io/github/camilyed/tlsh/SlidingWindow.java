@@ -45,7 +45,7 @@ class SlidingWindow {
   }
 
   private List<byte[]> generateTriplets() {
-    List<byte[]> triplets = new ArrayList<>();
+    List<byte[]> triplets = new ArrayList<>(6);
     if (currentWindowFillSize == WINDOW_SIZE) {
       for (int i = 0; i <= 2; i++) {
         for (int j = i + 1; j <= 3; j++) {
