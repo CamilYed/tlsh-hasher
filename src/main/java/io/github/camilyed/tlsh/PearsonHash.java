@@ -4,6 +4,9 @@ class PearsonHash {
   private final int[] permutation;
 
   PearsonHash(int[] permutation) {
+    if (permutation.length != 256) {
+      throw new IllegalArgumentException("Permutation must contain exactly 256 values");
+    }
     this.permutation = permutation.clone();
   }
 
