@@ -1,6 +1,8 @@
 /**
  * Provides the readable, educational TLSH implementation.
  *
- * <p>The package will be introduced incrementally as the learning exercises define its public API.
+ * <p>The current streaming feature pipeline maintains a five-byte window, maps six local byte
+ * combinations through Pearson hashing, and records their bucket frequencies in a histogram. Later
+ * exercises will add the remaining TLSH digest components.
  */
 package io.github.camilyed.tlsh;

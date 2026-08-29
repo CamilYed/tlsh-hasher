@@ -6,9 +6,9 @@ package io.github.camilyed.tlsh;
  * <p>A histogram is a collection of counters. Each counter represents one possible result of the
  * Pearson hash. The logical Pearson result is an unsigned eight-bit value, so there are 256
  * possible bucket indices: {@code 0} through {@code 255}. Java has no unsigned {@code byte} type,
- * so {@link PearsonHash#map(int, byte, byte, byte)} returns that value as an {@code int}. The Java
- * type can represent a much larger range, but this algorithm uses only its values from {@code 0}
- * through {@code 255}.
+ * so {@link PearsonHash#mapToBucketIndex(int, byte, byte, byte)} returns that value as an {@code
+ * int}. The Java type can represent a much larger range, but this algorithm uses only its values
+ * from {@code 0} through {@code 255}.
  *
  * <p>Whenever a five-byte sliding window is full, {@link BucketMapper} produces six bucket indices.
  * The counter at each returned index is incremented. For example, if a mapper produces bucket
@@ -34,34 +34,34 @@ package io.github.camilyed.tlsh;
  * indices must not be reduced with modulo 128 while collecting features because that would merge
  * different Pearson results and change the TLSH algorithm.
  */
-class Histogram {
+final class Histogram {
 
   private static final int BUCKET_COUNT = 256;
-  private final int[] histogram;
+  private final int[] bucketCounts;
 
-  /** Creates an empty histogram with all 256 counters initialized to zero. */
-  public Histogram() {
-    this.histogram = new int[BUCKET_COUNT];
+  /** Creates an empty histogram with all 256 bucket counters initialized to zero. */
+  Histogram() {
+    this.bucketCounts = new int[BUCKET_COUNT];
   }
 
   /**
-   * Records one occurrence of the specified bucket.
+   * Records one feature hit in the specified bucket.
    *
    * @param bucketIndex Pearson hash result in the range {@code 0..255}
    * @throws IndexOutOfBoundsException when the index is outside the range {@code 0..255}
    */
-  void increment(int bucketIndex) {
-    histogram[bucketIndex]++;
+  void recordHit(final int bucketIndex) {
+    bucketCounts[bucketIndex]++;
   }
 
   /**
    * Returns the number of occurrences recorded for one bucket.
    *
    * @param bucketIndex bucket index in the range {@code 0..255}
-   * @return number of times the bucket has been incremented
+   * @return number of feature hits recorded in the bucket
    * @throws IndexOutOfBoundsException when the index is outside the range {@code 0..255}
    */
-  int countAt(int bucketIndex) {
-    return histogram[bucketIndex];
+  int hitCountAt(final int bucketIndex) {
+    return bucketCounts[bucketIndex];
   }
 }

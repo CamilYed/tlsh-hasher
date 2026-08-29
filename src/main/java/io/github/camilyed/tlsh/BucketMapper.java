@@ -42,8 +42,9 @@ package io.github.camilyed.tlsh;
  * index {@code 1}, and {@code A} from index {@code 0}:
  *
  * <pre>{@code
- * int bucketIndex = pearsonHash.map(13, window[4], window[1], window[0]);
- * histogram.increment(bucketIndex);
+ * final int bucketIndex =
+ *     pearsonHash.mapToBucketIndex(13, windowBytes[4], windowBytes[1], windowBytes[0]);
+ * histogram.recordHit(bucketIndex);
  * }</pre>
  *
  * <p>The Pearson permutation determines the numeric value of {@code bucketIndex}. The mapper does
@@ -60,9 +61,9 @@ package io.github.camilyed.tlsh;
  * permutation. They are public algorithm constants rather than random or secret cryptographic
  * salts.
  */
-class BucketMapper {
+final class BucketMapper {
 
-  private static final TripletMapping[] MAPPINGS = {
+  private static final TripletMapping[] TRIPLET_MAPPINGS = {
     new TripletMapping(13, 1, 0), // ABE -> E, B, A
     new TripletMapping(7, 2, 0), // ACE -> E, C, A
     new TripletMapping(11, 3, 0), // ADE -> E, D, A
@@ -80,35 +81,35 @@ class BucketMapper {
    *
    * @param pearsonHash hash used to map each byte combination to a bucket index
    */
-  BucketMapper(PearsonHash pearsonHash) {
+  BucketMapper(final PearsonHash pearsonHash) {
     this.pearsonHash = pearsonHash;
   }
 
   /**
-   * Maps a full TLSH sliding window to its six bucket indices.
+   * Maps a full TLSH sliding-window snapshot to its six bucket indices.
    *
    * <p>A new result array is created for every invocation. Modifying the returned array therefore
    * cannot affect later mappings.
    *
-   * @param window exactly five bytes ordered from the oldest byte to the newest byte
+   * @param windowBytes snapshot containing exactly five bytes ordered from oldest to newest
    * @return six bucket indices ordered as {@code ABE}, {@code ACE}, {@code ADE}, {@code BCE},
    *     {@code BDE}, and {@code CDE}
    */
-  int[] map(byte[] window) {
-    int[] buckets = new int[MAPPINGS.length];
+  int[] mapWindowToBucketIndices(final byte[] windowBytes) {
+    final int[] bucketIndices = new int[TRIPLET_MAPPINGS.length];
 
-    for (int i = 0; i < MAPPINGS.length; i++) {
-      TripletMapping mapping = MAPPINGS[i];
+    for (int mappingIndex = 0; mappingIndex < TRIPLET_MAPPINGS.length; mappingIndex++) {
+      final TripletMapping mapping = TRIPLET_MAPPINGS[mappingIndex];
 
-      buckets[i] =
-          pearsonHash.map(
+      bucketIndices[mappingIndex] =
+          pearsonHash.mapToBucketIndex(
               mapping.salt(),
-              window[NEWEST_BYTE_INDEX],
-              window[mapping.secondIndex()],
-              window[mapping.thirdIndex()]);
+              windowBytes[NEWEST_BYTE_INDEX],
+              windowBytes[mapping.secondByteIndex()],
+              windowBytes[mapping.thirdByteIndex()]);
     }
 
-    return buckets;
+    return bucketIndices;
   }
 
   /**
@@ -118,8 +119,8 @@ class BucketMapper {
    * stored indices identify the remaining bytes in the order expected by the Pearson hash.
    *
    * @param salt fixed TLSH salt for the combination
-   * @param secondIndex index of the second byte passed to the Pearson hash
-   * @param thirdIndex index of the third byte passed to the Pearson hash
+   * @param secondByteIndex index of the second byte passed to the Pearson hash
+   * @param thirdByteIndex index of the third byte passed to the Pearson hash
    */
-  private record TripletMapping(int salt, int secondIndex, int thirdIndex) {}
+  private record TripletMapping(int salt, int secondByteIndex, int thirdByteIndex) {}
 }

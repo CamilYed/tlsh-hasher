@@ -4,24 +4,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-class BucketMapperTest {
+final class BucketMapperTest {
 
   @Test
   void shouldMapSixTripletsFromFullWindow() {
     // given
-    int[] permutation = new int[256];
-    for (int i = 0; i < permutation.length; i++) {
-      permutation[i] = (i * 73 + 41) & 0xff;
+    final int[] permutationTable = new int[256];
+    for (int i = 0; i < permutationTable.length; i++) {
+      permutationTable[i] = (i * 73 + 41) & 0xff;
     }
 
-    PearsonHash pearsonHash = new PearsonHash(permutation);
-    BucketMapper bucketMapper = new BucketMapper(pearsonHash);
-    byte[] window = {'A', 'B', 'C', 'D', 'E'};
+    final PearsonHash pearsonHash = new PearsonHash(permutationTable);
+    final BucketMapper bucketMapper = new BucketMapper(pearsonHash);
+    final byte[] windowBytes = {'A', 'B', 'C', 'D', 'E'};
 
     // when
-    int[] buckets = bucketMapper.map(window);
+    final int[] bucketIndices = bucketMapper.mapWindowToBucketIndices(windowBytes);
 
     // then
-    assertThat(buckets).containsExactly(79, 240, 47, 115, 222, 184);
+    assertThat(bucketIndices).containsExactly(79, 240, 47, 115, 222, 184);
   }
 }

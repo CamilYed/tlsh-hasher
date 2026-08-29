@@ -3,8 +3,9 @@
 An educational Java implementation of TLSH, developed incrementally from an understanding of the
 algorithm rather than by translating an existing implementation.
 
-The project currently contains only its build foundation. The TLSH implementation will be added in
-small, test-driven learning exercises.
+The project is developed in small, test-driven learning exercises. Its current readable pipeline
+contains a sliding window, Pearson bucket mapping, a feature histogram, and streaming feature
+accumulation.
 
 ## Requirements
 
@@ -32,3 +33,17 @@ The Gradle formatter remains the source of truth:
 ```shell
 ./gradlew spotlessApply
 ```
+
+## Java style
+
+Names should describe TLSH domain meaning rather than implementation mechanics. For example, use
+`bucketIndex` for a Pearson result and `bucketCounts` for histogram values.
+
+Use `final` for classes that are not designed for inheritance, object fields that are assigned only
+once, method and constructor parameters, and local variables that are not reassigned. A `final`
+array reference cannot be replaced, but its elements remain mutable. Do not add redundant `final`
+modifiers to methods declared inside a `final` class.
+
+This convention communicates intent and prevents accidental reassignment. It is not treated as a
+performance guarantee: the JVM JIT compiler performs its own runtime analysis and can optimize
+code regardless of whether local variables are declared `final`.

@@ -10,16 +10,16 @@ import java.util.List;
  * window contains {@code [A, B, C, D, E]}. Adding {@code F} discards {@code A} and changes the
  * window to {@code [B, C, D, E, F]}.
  */
-class SlidingWindow {
+final class SlidingWindow {
   private static final int WINDOW_SIZE = 5;
 
-  private final byte[] currentWindow;
-  private int currentWindowFillSize;
+  private final byte[] windowBytes;
+  private int filledByteCount;
 
   /** Creates an empty window that becomes available after five bytes have been added. */
   SlidingWindow() {
-    this.currentWindow = new byte[WINDOW_SIZE];
-    this.currentWindowFillSize = 0;
+    this.windowBytes = new byte[WINDOW_SIZE];
+    this.filledByteCount = 0;
   }
 
   /**
@@ -30,22 +30,22 @@ class SlidingWindow {
    * produces {@code [A, B, C, D, E]}. Adding {@code F} also returns {@code true} and shifts the
    * window to {@code [B, C, D, E, F]}.
    *
-   * @param singleByte byte to add
+   * @param nextByte byte to add
    * @return {@code true} when the window contains five bytes; otherwise {@code false}
    */
-  public boolean addByte(byte singleByte) {
-    if (currentWindowFillSize < WINDOW_SIZE) {
-      currentWindowFillSize++;
-      currentWindow[currentWindowFillSize - 1] = singleByte;
-      return currentWindowFillSize == WINDOW_SIZE;
+  boolean addByte(final byte nextByte) {
+    if (filledByteCount < WINDOW_SIZE) {
+      filledByteCount++;
+      windowBytes[filledByteCount - 1] = nextByte;
+      return filledByteCount == WINDOW_SIZE;
     }
-    System.arraycopy(currentWindow, 1, currentWindow, 0, WINDOW_SIZE - 1);
-    currentWindow[currentWindowFillSize - 1] = singleByte;
+    System.arraycopy(windowBytes, 1, windowBytes, 0, WINDOW_SIZE - 1);
+    windowBytes[filledByteCount - 1] = nextByte;
     return true;
   }
 
   /**
-   * Returns a defensive copy of the five-byte window.
+   * Returns a snapshot of the five-byte window as a defensive copy.
    *
    * <p>For example, after adding {@code A}, {@code B}, {@code C}, {@code D}, and {@code E}, this
    * method returns {@code [A, B, C, D, E]}. After adding {@code F}, it returns {@code [B, C, D, E,
@@ -55,8 +55,8 @@ class SlidingWindow {
    *
    * @return copy of the current window contents
    */
-  public byte[] currentWindow() {
-    return currentWindow.clone();
+  byte[] snapshot() {
+    return windowBytes.clone();
   }
 
   /**
@@ -82,19 +82,21 @@ class SlidingWindow {
    *
    * @return current window triplets, or an empty list when the window is incomplete
    */
-  public List<byte[]> triplets() {
-    return generateTriplets();
+  List<byte[]> triplets() {
+    return createTriplets();
   }
 
-  private List<byte[]> generateTriplets() {
-    List<byte[]> triplets = new ArrayList<>(6);
-    if (currentWindowFillSize == WINDOW_SIZE) {
-      for (int i = 0; i <= 2; i++) {
-        for (int j = i + 1; j <= 3; j++) {
-          byte[] triplet = new byte[3];
-          triplet[0] = currentWindow[i];
-          triplet[1] = currentWindow[j];
-          triplet[2] = currentWindow[WINDOW_SIZE - 1];
+  private List<byte[]> createTriplets() {
+    final List<byte[]> triplets = new ArrayList<>(6);
+    if (filledByteCount == WINDOW_SIZE) {
+      for (int firstOlderByteIndex = 0; firstOlderByteIndex <= 2; firstOlderByteIndex++) {
+        for (int secondOlderByteIndex = firstOlderByteIndex + 1;
+            secondOlderByteIndex <= 3;
+            secondOlderByteIndex++) {
+          final byte[] triplet = new byte[3];
+          triplet[0] = windowBytes[firstOlderByteIndex];
+          triplet[1] = windowBytes[secondOlderByteIndex];
+          triplet[2] = windowBytes[WINDOW_SIZE - 1];
           triplets.add(triplet);
         }
       }

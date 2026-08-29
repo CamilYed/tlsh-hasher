@@ -54,10 +54,10 @@ package io.github.camilyed.tlsh;
  * unsigned conversion:
  *
  * <pre>{@code
- * byte stored = (byte) 240;             // stored is -16 in Java
- * short widenedToShort = stored;        // still -16
- * int widenedToInt = stored;            // still -16
- * int unsignedValue =
+ * final byte stored = (byte) 240;             // stored is -16 in Java
+ * final short widenedToShort = stored;        // still -16
+ * final int widenedToInt = stored;            // still -16
+ * final int unsignedValue =
  *     Byte.toUnsignedInt(stored);       // 240
  * }</pre>
  *
@@ -71,8 +71,8 @@ package io.github.camilyed.tlsh;
  * not random, secret, or cryptographically secure. Pearson hashing and TLSH are similarity
  * mechanisms, not cryptographic hashes.
  */
-class PearsonHash {
-  private final int[] permutation;
+final class PearsonHash {
+  private final int[] permutationTable;
 
   /**
    * Creates a Pearson mapper with the supplied 256-entry permutation table.
@@ -80,15 +80,15 @@ class PearsonHash {
    * <p>The table is copied, so changing the caller's array after construction cannot change future
    * mapping results.
    *
-   * @param permutation table expected to contain each value from {@code 0} to {@code 255} exactly
-   *     once
+   * @param permutationTable table expected to contain each value from {@code 0} to {@code 255}
+   *     exactly once
    * @throws IllegalArgumentException when the table does not contain exactly 256 entries
    */
-  PearsonHash(int[] permutation) {
-    if (permutation.length != 256) {
+  PearsonHash(final int[] permutationTable) {
+    if (permutationTable.length != 256) {
       throw new IllegalArgumentException("Permutation must contain exactly 256 values");
     }
-    this.permutation = permutation.clone();
+    this.permutationTable = permutationTable.clone();
   }
 
   /**
@@ -104,20 +104,21 @@ class PearsonHash {
    * @return bucket index in the range {@code 0..255}
    * @throws IllegalArgumentException when {@code salt} is outside the range {@code 0..255}
    */
-  int map(int salt, byte firstByte, byte secondByte, byte thirdByte) {
-    if (salt < 0 || salt >= permutation.length) {
+  int mapToBucketIndex(
+      final int salt, final byte firstByte, final byte secondByte, final byte thirdByte) {
+    if (salt < 0 || salt >= permutationTable.length) {
       throw new IllegalArgumentException("Salt must be between 0 and 255");
     }
-    int unsignedFirst = unsigned(firstByte);
-    int h = permutation[salt];
-    h = permutation[h ^ unsignedFirst];
-    h = permutation[h ^ unsigned(secondByte)];
-    h = permutation[h ^ unsigned(thirdByte)];
-    return h;
+    final int unsignedFirstByte = toUnsignedInt(firstByte);
+    int hashState = permutationTable[salt];
+    hashState = permutationTable[hashState ^ unsignedFirstByte];
+    hashState = permutationTable[hashState ^ toUnsignedInt(secondByte)];
+    hashState = permutationTable[hashState ^ toUnsignedInt(thirdByte)];
+    return hashState;
   }
 
   /** Converts Java's signed byte representation to the unsigned value expected by TLSH. */
-  private static int unsigned(byte value) {
+  private static int toUnsignedInt(final byte value) {
     return Byte.toUnsignedInt(value);
   }
 }
