@@ -2,6 +2,7 @@ package io.github.camilyed.tlsh;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class SlidingWindowTest {
@@ -51,5 +52,40 @@ class SlidingWindowTest {
 
     // then
     assertThat(slidingWindow.currentWindow()).containsExactly(bytes);
+  }
+
+  @Test
+  void shouldReturnWindowTriplets() {
+    // given
+    SlidingWindow slidingWindow = new SlidingWindow();
+    byte[] bytes = {'A', 'B', 'C', 'D', 'E'};
+    for (byte currentByte : bytes) {
+      slidingWindow.addByte(currentByte);
+    }
+
+    // when
+    List<byte[]> triplets = slidingWindow.triplets();
+
+    // then
+    assertThat(triplets).hasSize(6);
+    assertThat(triplets.get(0)).containsExactly(new byte[] {'A', 'B', 'E'});
+    assertThat(triplets.get(1)).containsExactly(new byte[] {'A', 'C', 'E'});
+    assertThat(triplets.get(2)).containsExactly(new byte[] {'A', 'D', 'E'});
+    assertThat(triplets.get(3)).containsExactly(new byte[] {'B', 'C', 'E'});
+    assertThat(triplets.get(4)).containsExactly(new byte[] {'B', 'D', 'E'});
+    assertThat(triplets.get(5)).containsExactly(new byte[] {'C', 'D', 'E'});
+
+    // when
+    slidingWindow.addByte((byte) 'F');
+
+    // then
+    triplets = slidingWindow.triplets();
+    assertThat(triplets).hasSize(6);
+    assertThat(triplets.get(0)).containsExactly(new byte[] {'B', 'C', 'F'});
+    assertThat(triplets.get(1)).containsExactly(new byte[] {'B', 'D', 'F'});
+    assertThat(triplets.get(2)).containsExactly(new byte[] {'B', 'E', 'F'});
+    assertThat(triplets.get(3)).containsExactly(new byte[] {'C', 'D', 'F'});
+    assertThat(triplets.get(4)).containsExactly(new byte[] {'C', 'E', 'F'});
+    assertThat(triplets.get(5)).containsExactly(new byte[] {'D', 'E', 'F'});
   }
 }

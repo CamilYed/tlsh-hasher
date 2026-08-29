@@ -1,5 +1,8 @@
 package io.github.camilyed.tlsh;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** Maintains the five most recently added bytes for TLSH feature extraction. */
 class SlidingWindow {
   private static final int WINDOW_SIZE = 5;
@@ -39,5 +42,33 @@ class SlidingWindow {
    */
   public byte[] currentWindow() {
     return currentWindow.clone();
+  }
+
+  private List<byte[]> generateTriplets() {
+    List<byte[]> triplets = new ArrayList<>();
+    if (currentWindowFillSize == WINDOW_SIZE) {
+      for (int i = 0; i <= 2; i++) {
+        for (int j = i + 1; j <= 3; j++) {
+          byte[] triplet = new byte[3];
+          triplet[0] = currentWindow[i];
+          triplet[1] = currentWindow[j];
+          triplet[2] = currentWindow[WINDOW_SIZE - 1];
+          triplets.add(triplet);
+        }
+      }
+    }
+    return triplets;
+  }
+
+  /**
+   * Returns the six triplets anchored at the newest byte of a full window.
+   *
+   * <p>Returns an empty list until the window contains five bytes. Each invocation returns an
+   * independent result.
+   *
+   * @return current window triplets, or an empty list when the window is incomplete
+   */
+  public List<byte[]> triplets() {
+    return generateTriplets();
   }
 }
