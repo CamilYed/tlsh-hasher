@@ -24,4 +24,17 @@ final class BucketMapperTest {
     // then
     assertThat(bucketIndices).containsExactly(79, 240, 47, 115, 222, 184);
   }
+
+  @Test
+  void shouldMapWindowUsingOfficialTlshPermutation() {
+    // given
+    final BucketMapper bucketMapper = new BucketMapper(new PearsonHash());
+    final byte[] windowBytes = {'A', 'B', 'C', 'D', 'E'};
+
+    // when
+    final int[] bucketIndices = bucketMapper.mapWindowToBucketIndices(windowBytes);
+
+    // then
+    assertThat(bucketIndices).containsExactly(55, 242, 243, 112, 105, 181);
+  }
 }

@@ -1,22 +1,34 @@
 package io.github.camilyed.tlsh;
 
 /**
- * Maps one salted sequence of three bytes to a number between {@code 0} and {@code 255} using
- * Pearson hashing.
+ * Converts three ordered bytes into the index of one counter in a 256-counter histogram.
  *
- * <p>The result is logically an unsigned eight-bit value. Java has no unsigned {@code byte}, so the
- * method returns it as an {@code int}; only the {@code 0..255} part of the {@code int} range is
- * used. Returning {@code short} would not remove the need for conversion because Java {@code short}
- * is also signed, and Java performs bitwise operations using {@code int} values.
+ * <p>The problem solved by this class starts with a large difference in scale. Three bytes can form
+ * {@code 256 * 256 * 256}, or 16,777,216, different sequences, but the histogram has only 256
+ * counters. It is therefore impossible to give every sequence its own counter. Many different
+ * sequences must intentionally share the same counter. This sharing is called a collision.
  *
- * <p>This class does not produce a complete TLSH digest. It produces one bucket index for one of
- * the six byte combinations extracted from a five-byte sliding window. A later histogram step
- * increments the bucket at that index.
+ * <p>A useful mapping should spread commonly occurring sequences across the histogram instead of
+ * sending most of them to a small group of counters. It should also use every input byte and care
+ * about their order. Simple formulas do not meet these requirements well. For example, adding the
+ * bytes would give {@code A + B + E == E + B + A}, so two differently ordered features would always
+ * select the same counter. Selecting a counter from only one byte would completely ignore the other
+ * two bytes.
  *
- * <p>Pearson hashing uses a table containing a permutation of all numbers from {@code 0} to {@code
- * 255}. A permutation contains every number exactly once, but in a shuffled order. Looking up a
- * value in this table after every XOR operation makes the result depend on the order of the input
- * bytes.
+ * <p>Pearson hashing addresses this problem by carrying a small intermediate value called the hash
+ * state. Each input byte changes that state. The changed state becomes the starting point for the
+ * next byte, so the final result depends on the complete ordered sequence rather than on one byte
+ * considered in isolation.
+ *
+ * <p>The state is mixed with a permutation table containing every number from {@code 0} to {@code
+ * 255} exactly once, in a shuffled order. The table turns a simple intermediate index into a less
+ * predictable next state. Without that shuffle, repeated XOR operations would preserve too much
+ * structure from the input and would not mix the bytes sufficiently.
+ *
+ * <p>The mapping is deterministic: the same permutation, salt, and three bytes always select the
+ * same counter. It does not guarantee that different sequences select different counters—this is
+ * impossible with only 256 results—but it aims to distribute those unavoidable collisions rather
+ * than concentrate them in a few places.
  *
  * <p>The mapping is calculated as follows, where {@code T} is the permutation table and {@code ^}
  * means bitwise XOR:
@@ -38,8 +50,14 @@ package io.github.camilyed.tlsh;
  * 0110  (6)
  * }</pre>
  *
- * <p>For example, suppose the beginning of a test permutation is {@code [3, 6, 1, 5, 7, 0, 4, 2]}.
- * Mapping salt {@code 2} and bytes {@code 5}, {@code 3}, and {@code 6} gives:
+ * <p>The {@code salt} chooses the initial state. It lets the caller map different kinds of
+ * three-byte features through the same permutation without giving all of them the same starting
+ * point. A salt is not random data, a password, or a security mechanism; it is simply another
+ * small, fixed input to the mapping.
+ *
+ * <p>For example, suppose a shortened demonstration table begins with {@code [3, 6, 1, 5, 7, 0, 4,
+ * 2]}. Mapping salt {@code 2} and bytes {@code 5}, {@code 3}, and {@code 6} changes the state as
+ * follows:
  *
  * <pre>{@code
  * h = T[2]     = 1
@@ -48,10 +66,13 @@ package io.github.camilyed.tlsh;
  * h = T[7 ^ 6] = T[1] = 6
  * }</pre>
  *
- * <p>Java bytes are signed and have values from {@code -128} to {@code 127}, while TLSH treats the
- * same eight bits as an unsigned value from {@code 0} to {@code 255}. Widening a negative {@code
- * byte} to {@code short} or {@code int} preserves the negative value, so widening alone is not an
- * unsigned conversion:
+ * <p>The final state {@code 6} is the selected histogram index. The histogram increments counter
+ * {@code 6}; it does not store the three original bytes inside that counter.
+ *
+ * <p>Java bytes are signed and have values from {@code -128} to {@code 127}, while every possible
+ * eight-bit pattern must address a table position from {@code 0} to {@code 255}. Widening a
+ * negative {@code byte} to {@code short} or {@code int} preserves the negative value, so widening
+ * alone is not an unsigned conversion:
  *
  * <pre>{@code
  * final byte stored = (byte) 240;             // stored is -16 in Java
@@ -63,16 +84,23 @@ package io.github.camilyed.tlsh;
  *
  * <p>The conversion is required before XOR. Otherwise Java sign-extends a negative byte to a
  * negative 32-bit integer, which can produce a negative permutation index. An {@code int} is used
- * for the converted value because {@link Byte#toUnsignedInt(byte)} returns {@code int}, array
+ * for both the table index and the returned result because Java has no unsigned {@code byte}, array
  * indices naturally use {@code int}, and Java promotes {@code byte} and {@code short} operands to
- * {@code int} during bitwise operations.
+ * {@code int} during bitwise operations. Although the method returns {@code int}, its result is
+ * always limited to {@code 0..255}.
  *
- * <p>The salt is a fixed TLSH input that distinguishes one window combination from another. It is
- * not random, secret, or cryptographically secure. Pearson hashing and TLSH are similarity
- * mechanisms, not cryptographic hashes.
+ * <p>This class performs only the small mapping described above. It does not store histogram
+ * counts, process the sliding window, or produce a complete similarity digest. Pearson hashing is
+ * also not a cryptographic hash: its small result makes collisions expected and unsuitable for
+ * security decisions.
  */
 final class PearsonHash {
   private final int[] permutationTable;
+
+  /** Creates a Pearson mapper using the permutation selected for this similarity algorithm. */
+  PearsonHash() {
+    this(TlshPearsonPermutation.copy());
+  }
 
   /**
    * Creates a Pearson mapper with the supplied 256-entry permutation table.
