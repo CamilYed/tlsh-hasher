@@ -3,7 +3,6 @@ package io.github.camilyed.tlsh;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 class PearsonHashTest {
@@ -39,7 +38,6 @@ class PearsonHashTest {
   }
 
   @Test
-  @Disabled
   void shouldRejectSaltOutsideByteRange() {
     // given
     int[] permutation = new int[256];
