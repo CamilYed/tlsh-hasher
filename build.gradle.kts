@@ -3,6 +3,7 @@ import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.gradle.external.javadoc.JavadocMemberLevel
 import org.gradle.external.javadoc.StandardJavadocDocletOptions
 
 plugins {
@@ -67,6 +68,7 @@ tasks.withType<JavaCompile>().configureEach {
 tasks.withType<Javadoc>().configureEach {
     isFailOnError = true
     options.encoding = "UTF-8"
+    options.memberLevel = JavadocMemberLevel.PACKAGE
     (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:all", "-quiet")
 
     // The learning project deliberately starts with package documentation and no API types.

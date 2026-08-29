@@ -11,14 +11,6 @@ class SlidingWindow {
     this.currentWindowFillSize = 0;
   }
 
-  public boolean addBytes(byte[] bytes) {
-    for (int i = 0; i < Math.min(bytes.length, WINDOW_SIZE); i++) {
-      currentWindow[i] = bytes[i];
-      currentWindowFillSize = i + 1;
-    }
-    return currentWindowFillSize == WINDOW_SIZE;
-  }
-
   public boolean addByte(byte singleByte) {
     if (currentWindowFillSize < WINDOW_SIZE) {
       currentWindowFillSize++;
@@ -33,6 +25,6 @@ class SlidingWindow {
   }
 
   public byte[] currentWindow() {
-    return currentWindow;
+    return currentWindow.clone();
   }
 }
