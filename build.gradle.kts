@@ -53,7 +53,7 @@ extensions.configure<SpotlessExtension> {
     }
 
     format("misc") {
-        target("*.md", ".gitignore", "gradle.properties", "gradle/**/*.toml")
+        target("*.md", ".editorconfig", ".gitignore", "gradle.properties", "gradle/**/*.toml")
         trimTrailingWhitespace()
         endWithNewline()
     }

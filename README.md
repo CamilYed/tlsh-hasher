@@ -19,3 +19,16 @@ small, test-driven learning exercises.
 
 Tests use JUnit 6 on the JUnit Platform. `check` also verifies formatting and builds strict Javadoc.
 API documentation is available after the build under `build/docs/javadoc`.
+
+## IntelliJ IDEA formatting
+
+Java sources use Google Java Format, including its two-space block indentation. For IntelliJ IDEA's
+**Reformat Code** action to produce the same result as Spotless, install and enable the
+`google-java-format` plugin. The repository's `.editorconfig` keeps the built-in editor settings
+aligned for indentation, line endings, and trailing whitespace.
+
+The Gradle formatter remains the source of truth:
+
+```shell
+./gradlew spotlessApply
+```
