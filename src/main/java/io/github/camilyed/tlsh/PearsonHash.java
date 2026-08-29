@@ -4,6 +4,11 @@ package io.github.camilyed.tlsh;
  * Maps one salted sequence of three bytes to a number between {@code 0} and {@code 255} using
  * Pearson hashing.
  *
+ * <p>The result is logically an unsigned eight-bit value. Java has no unsigned {@code byte}, so the
+ * method returns it as an {@code int}; only the {@code 0..255} part of the {@code int} range is
+ * used. Returning {@code short} would not remove the need for conversion because Java {@code short}
+ * is also signed, and Java performs bitwise operations using {@code int} values.
+ *
  * <p>This class does not produce a complete TLSH digest. It produces one bucket index for one of
  * the six byte combinations extracted from a five-byte sliding window. A later histogram step
  * increments the bucket at that index.
@@ -23,6 +28,16 @@ package io.github.camilyed.tlsh;
  * h = T[h ^ unsigned(thirdByte)]
  * }</pre>
  *
+ * <p>XOR compares two values bit by bit. A result bit is {@code 1} when the corresponding input
+ * bits differ and {@code 0} when they are equal. For example, {@code 5 ^ 3} is {@code 6}:
+ *
+ * <pre>{@code
+ * 0101  (5)
+ * 0011  (3)
+ * ----
+ * 0110  (6)
+ * }</pre>
+ *
  * <p>For example, suppose the beginning of a test permutation is {@code [3, 6, 1, 5, 7, 0, 4, 2]}.
  * Mapping salt {@code 2} and bytes {@code 5}, {@code 3}, and {@code 6} gives:
  *
@@ -33,9 +48,24 @@ package io.github.camilyed.tlsh;
  * h = T[7 ^ 6] = T[1] = 6
  * }</pre>
  *
- * <p>Java bytes are signed and have values from {@code -128} to {@code 127}, while TLSH treats a
- * byte as an unsigned value from {@code 0} to {@code 255}. Every input byte is therefore converted
- * before it is used as an array index.
+ * <p>Java bytes are signed and have values from {@code -128} to {@code 127}, while TLSH treats the
+ * same eight bits as an unsigned value from {@code 0} to {@code 255}. Widening a negative {@code
+ * byte} to {@code short} or {@code int} preserves the negative value, so widening alone is not an
+ * unsigned conversion:
+ *
+ * <pre>{@code
+ * byte stored = (byte) 240;             // stored is -16 in Java
+ * short widenedToShort = stored;        // still -16
+ * int widenedToInt = stored;            // still -16
+ * int unsignedValue =
+ *     Byte.toUnsignedInt(stored);       // 240
+ * }</pre>
+ *
+ * <p>The conversion is required before XOR. Otherwise Java sign-extends a negative byte to a
+ * negative 32-bit integer, which can produce a negative permutation index. An {@code int} is used
+ * for the converted value because {@link Byte#toUnsignedInt(byte)} returns {@code int}, array
+ * indices naturally use {@code int}, and Java promotes {@code byte} and {@code short} operands to
+ * {@code int} during bitwise operations.
  *
  * <p>The salt is a fixed TLSH input that distinguishes one window combination from another. It is
  * not random, secret, or cryptographically secure. Pearson hashing and TLSH are similarity

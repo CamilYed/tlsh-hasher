@@ -13,6 +13,14 @@ package io.github.camilyed.tlsh;
  * Appending {@code E} produces the chronological triplets {@code ABE}, {@code ACE}, {@code ADE},
  * {@code BCE}, {@code BDE}, and {@code CDE}.
  *
+ * <p>There are three related orders to keep separate:
+ *
+ * <ol>
+ *   <li>The window order is oldest to newest: {@code A, B, C, D, E}.
+ *   <li>The feature name is chronological: for example, {@code ABE}.
+ *   <li>The Pearson input order is newest to oldest: the same feature is passed as {@code E, B, A}.
+ * </ol>
+ *
  * <p>Only combinations containing the newest byte are processed. For example, {@code ABC} is not
  * processed again when {@code E} arrives because it was already processed when {@code C} was the
  * newest byte.
@@ -29,6 +37,18 @@ package io.github.camilyed.tlsh;
  * output 4: salt  3, E D B  (BDE)
  * output 5: salt  2, E D C  (CDE)
  * }</pre>
+ *
+ * <p>For the first combination, the mapper reads {@code E} from index {@code 4}, {@code B} from
+ * index {@code 1}, and {@code A} from index {@code 0}:
+ *
+ * <pre>{@code
+ * int bucketIndex = pearsonHash.map(13, window[4], window[1], window[0]);
+ * histogram.increment(bucketIndex);
+ * }</pre>
+ *
+ * <p>The Pearson permutation determines the numeric value of {@code bucketIndex}. The mapper does
+ * not store the triplet itself; it returns the index of the histogram counter that represents that
+ * local byte feature.
  *
  * <p>The output order follows the readable chronological order {@code ABE}, {@code ACE}, {@code
  * ADE}, {@code BCE}, {@code BDE}, and {@code CDE}. A histogram ultimately increments all six
