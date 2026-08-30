@@ -1,11 +1,18 @@
 package io.github.camilyed.tlsh;
 
 /**
- * Coordinates the streaming window, feature histogram, and rolling checksum for one input stream.
+ * Coordinates input length, the streaming window, feature histogram, and rolling checksum for one
+ * input stream.
  *
  * <p>The accumulator accepts one byte at a time and keeps only the five most recent bytes in a
  * {@link SlidingWindow}. This allows a large file to be processed as a stream without storing the
  * complete file in memory.
+ *
+ * <p>The raw input length is counted independently of the sliding window. It starts at zero and is
+ * increased for every byte, including the first four bytes that cannot yet produce a complete
+ * window. A {@code long} is used so inputs larger than the approximately 2 GB limit of {@code int}
+ * can be counted correctly. This raw count is not yet the compact length value stored in a final
+ * digest; a later stage transforms it into that encoded representation.
  *
  * <p>No feature or checksum update is recorded while the window contains fewer than five bytes.
  * Once the fifth byte arrives, the completed window is used in two parallel calculations:
@@ -44,8 +51,8 @@ package io.github.camilyed.tlsh;
  * multiple times. The accumulator stores counts and checksum state, not the original input bytes or
  * every generated triplet.
  *
- * <p>This class does not yet calculate input-length encoding, quartiles, two-bit quantization, the
- * final digest, or distance between digests.
+ * <p>This class does not yet calculate the compact input-length encoding, quartiles, two-bit
+ * quantization, the final digest, or distance between digests.
  *
  * <p>Instances are mutable and represent the state of one input stream. A single instance should
  * not be shared between unrelated files or updated concurrently from multiple threads.
@@ -55,9 +62,10 @@ final class TlshAccumulator {
   private final Histogram featureHistogram;
   private final ChecksumAccumulator checksumAccumulator;
   private final SlidingWindow slidingWindow = new SlidingWindow();
+  private long inputLength;
 
   /**
-   * Creates an accumulator that records histogram features and checksum updates for full windows.
+   * Creates an empty accumulator with input length and checksum initially equal to zero.
    *
    * <p>The collaborators are retained rather than copied. Consequently, callers holding the same
    * {@code featureHistogram} instance observe every bucket hit recorded by this accumulator. Code
@@ -74,17 +82,20 @@ final class TlshAccumulator {
     this.bucketMapper = bucketMapper;
     this.featureHistogram = featureHistogram;
     this.checksumAccumulator = checksumAccumulator;
+    this.inputLength = 0;
   }
 
   /**
    * Adds one byte to the current input stream and processes every resulting full window.
    *
-   * <p>The first four calls only fill the internal window. The fifth and every later call maps the
-   * current five-byte window, increments six histogram counters, and updates the rolling checksum.
+   * <p>Every call increases the input length. The first four calls otherwise only fill the internal
+   * window. The fifth and every later call maps the current five-byte window, increments six
+   * histogram counters, and updates the rolling checksum.
    *
    * @param currentByte next byte from the input stream
    */
   void addByte(final byte currentByte) {
+    inputLength += 1;
     if (slidingWindow.addByte(currentByte)) {
       final byte[] fullWindow = slidingWindow.snapshot();
       final int newestByteIndex = fullWindow.length - 1;
@@ -95,5 +106,16 @@ final class TlshAccumulator {
         featureHistogram.recordHit(bucketIndex);
       }
     }
+  }
+
+  /**
+   * Returns the number of bytes added to this accumulator.
+   *
+   * <p>This is the exact raw byte count, not the compact length code stored in a finished digest.
+   *
+   * @return number of accepted input bytes, starting at zero
+   */
+  long inputLength() {
+    return inputLength;
   }
 }

@@ -7,6 +7,34 @@ import org.junit.jupiter.api.Test;
 final class TlshAccumulatorTest {
 
   @Test
+  void shouldCountEveryInputByteBeforeAndAfterWindowIsFull() {
+    // given
+    final PearsonHash pearsonHash = new PearsonHash();
+    final TlshAccumulator tlshAccumulator =
+        new TlshAccumulator(
+            new BucketMapper(pearsonHash), new Histogram(), new ChecksumAccumulator(pearsonHash));
+
+    // then
+    assertThat(tlshAccumulator.inputLength()).isZero();
+
+    // when
+    final byte[] firstFourBytes = {'A', 'B', 'C', 'D'};
+    for (final byte currentByte : firstFourBytes) {
+      tlshAccumulator.addByte(currentByte);
+    }
+
+    // then
+    assertThat(tlshAccumulator.inputLength()).isEqualTo(4);
+
+    // when
+    tlshAccumulator.addByte((byte) 'E');
+    tlshAccumulator.addByte((byte) 'F');
+
+    // then
+    assertThat(tlshAccumulator.inputLength()).isEqualTo(6);
+  }
+
+  @Test
   void shouldAccumulateChecksumForEveryFullWindow() {
     // given
     final PearsonHash pearsonHash = new PearsonHash();
