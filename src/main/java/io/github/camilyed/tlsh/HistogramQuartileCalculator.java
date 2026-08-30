@@ -59,9 +59,7 @@ final class HistogramQuartileCalculator {
    * @throws IllegalArgumentException when the array does not contain exactly 128 counts
    */
   HistogramQuartiles calculate(final int[] bucketCounts) {
-    if (bucketCounts.length != QUARTILE_BUCKET_COUNT) {
-      throw new IllegalArgumentException("Quartiles require exactly 128 bucket counts");
-    }
+    validateBucketCount(bucketCounts);
 
     final int[] sortedBucketCounts = bucketCounts.clone();
     Arrays.sort(sortedBucketCounts);
@@ -72,5 +70,12 @@ final class HistogramQuartileCalculator {
         sortedBucketCounts[quartileSize - 1],
         sortedBucketCounts[quartileSize * 2 - 1],
         sortedBucketCounts[quartileSize * 3 - 1]);
+  }
+
+  /** Ensures that the input can be divided into four groups of 32 bucket counts. */
+  private static void validateBucketCount(final int[] bucketCounts) {
+    if (bucketCounts.length != QUARTILE_BUCKET_COUNT) {
+      throw new IllegalArgumentException("Quartiles require exactly 128 bucket counts");
+    }
   }
 }

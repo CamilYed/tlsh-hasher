@@ -113,9 +113,7 @@ final class PearsonHash {
    * @throws IllegalArgumentException when the table does not contain exactly 256 entries
    */
   PearsonHash(final int[] permutationTable) {
-    if (permutationTable.length != 256) {
-      throw new IllegalArgumentException("Permutation must contain exactly 256 values");
-    }
+    validatePermutationTableSize(permutationTable);
     this.permutationTable = permutationTable.clone();
   }
 
@@ -134,15 +132,27 @@ final class PearsonHash {
    */
   int mapToBucketIndex(
       final int salt, final byte firstByte, final byte secondByte, final byte thirdByte) {
-    if (salt < 0 || salt >= permutationTable.length) {
-      throw new IllegalArgumentException("Salt must be between 0 and 255");
-    }
+    validateSalt(salt);
     final int unsignedFirstByte = toUnsignedInt(firstByte);
     int hashState = permutationTable[salt];
     hashState = permutationTable[hashState ^ unsignedFirstByte];
     hashState = permutationTable[hashState ^ toUnsignedInt(secondByte)];
     hashState = permutationTable[hashState ^ toUnsignedInt(thirdByte)];
     return hashState;
+  }
+
+  /** Ensures that every possible byte value has one position in the permutation table. */
+  private static void validatePermutationTableSize(final int[] permutationTable) {
+    if (permutationTable.length != 256) {
+      throw new IllegalArgumentException("Permutation must contain exactly 256 values");
+    }
+  }
+
+  /** Ensures that the starting value can address the 256-entry permutation table. */
+  private void validateSalt(final int salt) {
+    if (salt < 0 || salt >= permutationTable.length) {
+      throw new IllegalArgumentException("Salt must be between 0 and 255");
+    }
   }
 
   /** Converts Java's signed byte representation to the unsigned value expected by TLSH. */

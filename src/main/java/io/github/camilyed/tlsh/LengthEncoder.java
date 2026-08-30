@@ -245,14 +245,24 @@ final class LengthEncoder {
    *     4_224_281_216}
    */
   int encode(final long inputLength) {
-    if (inputLength <= 0) {
-      throw new IllegalArgumentException("Input length must be positive");
-    }
-    for (int rangeIndex = 0; rangeIndex < RANGE_UPPER_BOUNDS.length; rangeIndex++) {
+    validateInputLength(inputLength);
+
+    for (int rangeIndex = 0; rangeIndex < RANGE_UPPER_BOUNDS.length - 1; rangeIndex++) {
       if (inputLength <= RANGE_UPPER_BOUNDS[rangeIndex]) {
         return rangeIndex;
       }
     }
-    throw new IllegalArgumentException("Input length must not exceed " + MAX_INPUT_LENGTH);
+
+    return RANGE_UPPER_BOUNDS.length - 1;
+  }
+
+  /** Ensures that the exact length can be represented by the predefined range table. */
+  private static void validateInputLength(final long inputLength) {
+    if (inputLength <= 0) {
+      throw new IllegalArgumentException("Input length must be positive");
+    }
+    if (inputLength > MAX_INPUT_LENGTH) {
+      throw new IllegalArgumentException("Input length must not exceed " + MAX_INPUT_LENGTH);
+    }
   }
 }
