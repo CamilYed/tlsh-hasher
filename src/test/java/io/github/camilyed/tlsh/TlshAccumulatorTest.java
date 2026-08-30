@@ -4,7 +4,38 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-final class FeatureAccumulatorTest {
+final class TlshAccumulatorTest {
+
+  @Test
+  void shouldAccumulateChecksumForEveryFullWindow() {
+    // given
+    final PearsonHash pearsonHash = new PearsonHash();
+    final Histogram histogram = new Histogram();
+    final ChecksumAccumulator checksumAccumulator = new ChecksumAccumulator(pearsonHash);
+    final TlshAccumulator tlshAccumulator =
+        new TlshAccumulator(new BucketMapper(pearsonHash), histogram, checksumAccumulator);
+
+    // when
+    final byte[] firstFourBytes = {'A', 'B', 'C', 'D'};
+    for (final byte currentByte : firstFourBytes) {
+      tlshAccumulator.addByte(currentByte);
+    }
+
+    // then
+    assertThat(checksumAccumulator.value()).isZero();
+
+    // when
+    tlshAccumulator.addByte((byte) 'E');
+
+    // then
+    assertThat(checksumAccumulator.value()).isEqualTo(92);
+
+    // when
+    tlshAccumulator.addByte((byte) 'F');
+
+    // then
+    assertThat(checksumAccumulator.value()).isEqualTo(96);
+  }
 
   @Test
   void shouldAccumulateSixFeaturesWhenWindowBecomesFull() {
@@ -14,14 +45,17 @@ final class FeatureAccumulatorTest {
       permutationTable[i] = (i * 73 + 41) & 0xff;
     }
 
-    final BucketMapper bucketMapper = new BucketMapper(new PearsonHash(permutationTable));
+    final PearsonHash pearsonHash = new PearsonHash(permutationTable);
+    final BucketMapper bucketMapper = new BucketMapper(pearsonHash);
     final Histogram histogram = new Histogram();
-    final FeatureAccumulator featureAccumulator = new FeatureAccumulator(bucketMapper, histogram);
+    final ChecksumAccumulator checksumAccumulator = new ChecksumAccumulator(pearsonHash);
+    final TlshAccumulator tlshAccumulator =
+        new TlshAccumulator(bucketMapper, histogram, checksumAccumulator);
 
     // when
     final byte[] inputBytes = {'A', 'B', 'C', 'D', 'E'};
     for (final byte currentByte : inputBytes) {
-      featureAccumulator.addByte(currentByte);
+      tlshAccumulator.addByte(currentByte);
     }
 
     // then
@@ -41,27 +75,30 @@ final class FeatureAccumulatorTest {
       permutationTable[permutationIndex] = (permutationIndex * 73 + 41) & 0xff;
     }
 
-    final BucketMapper bucketMapper = new BucketMapper(new PearsonHash(permutationTable));
+    final PearsonHash pearsonHash = new PearsonHash(permutationTable);
+    final BucketMapper bucketMapper = new BucketMapper(pearsonHash);
     final Histogram histogram = new Histogram();
-    final FeatureAccumulator featureAccumulator = new FeatureAccumulator(bucketMapper, histogram);
+    final ChecksumAccumulator checksumAccumulator = new ChecksumAccumulator(pearsonHash);
+    final TlshAccumulator tlshAccumulator =
+        new TlshAccumulator(bucketMapper, histogram, checksumAccumulator);
 
     // when
     final byte[] firstFourBytes = {'A', 'B', 'C', 'D'};
     for (final byte currentByte : firstFourBytes) {
-      featureAccumulator.addByte(currentByte);
+      tlshAccumulator.addByte(currentByte);
     }
 
     // then
     assertThat(totalHitCount(histogram)).isZero();
 
     // when
-    featureAccumulator.addByte((byte) 'E');
+    tlshAccumulator.addByte((byte) 'E');
 
     // then
     assertThat(totalHitCount(histogram)).isEqualTo(6);
 
     // when
-    featureAccumulator.addByte((byte) 'F');
+    tlshAccumulator.addByte((byte) 'F');
 
     // then
     assertThat(totalHitCount(histogram)).isEqualTo(12);
