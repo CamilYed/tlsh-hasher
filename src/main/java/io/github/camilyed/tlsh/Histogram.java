@@ -1,5 +1,7 @@
 package io.github.camilyed.tlsh;
 
+import java.util.Arrays;
+
 /**
  * Counts how often TLSH features are mapped to each Pearson hash bucket.
  *
@@ -33,10 +35,17 @@ package io.github.camilyed.tlsh;
  * stage derives quartiles and compact two-bit values from the effective histogram buckets. Bucket
  * indices must not be reduced with modulo 128 while collecting features because that would merge
  * different Pearson results and change the TLSH algorithm.
+ *
+ * <p>The selected compact digest format uses the first 128 counters, with indices {@code 0..127},
+ * as its effective histogram. Counters {@code 128..255} are not folded into the lower half. For
+ * example, a hit in bucket {@code 200} must not increment bucket {@code 72}, even though {@code 200
+ * % 128 == 72}. {@link #effectiveBucketCounts()} returns the lower half in its original bucket
+ * order so it can be used for quartile calculation and later two-bit quantization.
  */
 final class Histogram {
 
   private static final int BUCKET_COUNT = 256;
+  private static final int EFFECTIVE_BUCKET_COUNT = 128;
   private final int[] bucketCounts;
 
   /** Creates an empty histogram with all 256 bucket counters initialized to zero. */
@@ -63,5 +72,19 @@ final class Histogram {
    */
   int hitCountAt(final int bucketIndex) {
     return bucketCounts[bucketIndex];
+  }
+
+  /**
+   * Returns the ordered counts for the 128 buckets used by the compact digest format.
+   *
+   * <p>The returned array contains buckets {@code 0..127}. It is a defensive copy: changing an
+   * element in the returned array does not alter this histogram. Bucket order is intentionally
+   * preserved because each position still identifies a particular Pearson result; a quartile
+   * calculator may sort its own additional copy when it needs the count distribution.
+   *
+   * @return a new 128-element array containing the effective bucket counts
+   */
+  int[] effectiveBucketCounts() {
+    return Arrays.copyOf(bucketCounts, EFFECTIVE_BUCKET_COUNT);
   }
 }
