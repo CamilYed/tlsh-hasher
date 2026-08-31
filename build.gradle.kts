@@ -1,4 +1,7 @@
 import com.diffplug.gradle.spotless.SpotlessExtension
+import org.gradle.api.Project
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -8,6 +11,8 @@ import org.gradle.external.javadoc.StandardJavadocDocletOptions
 
 plugins {
     `java-library`
+    `maven-publish`
+    signing
     alias(libs.plugins.spotless)
 }
 
@@ -21,6 +26,73 @@ java {
 
     withSourcesJar()
     withJavadocJar()
+    modularity.inferModulePath.set(true)
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            artifactId = "tlsh-hasher"
+
+            pom {
+                name.set("TLSH Hasher")
+                description.set("A readable Java implementation of TLSH similarity hashing")
+                url.set("https://github.com/CamilYed/tlsh-hasher")
+                inceptionYear.set("2026")
+
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                        distribution.set("repo")
+                    }
+                }
+
+                developers {
+                    developer {
+                        id.set("CamilYed")
+                        name.set("CamilYed")
+                        url.set("https://github.com/CamilYed")
+                    }
+                }
+
+                scm {
+                    url.set("https://github.com/CamilYed/tlsh-hasher")
+                    connection.set("scm:git:git://github.com/CamilYed/tlsh-hasher.git")
+                    developerConnection.set("scm:git:ssh://git@github.com:CamilYed/tlsh-hasher.git")
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "localBuild"
+            setUrl(layout.buildDirectory.dir("staging-deploy"))
+        }
+    }
+}
+
+signing {
+    val signingKey =
+        providers
+            .gradleProperty("signingKey")
+            .orElse(providers.environmentVariable("SIGNING_KEY"))
+            .orNull
+    val signingPassword =
+        providers
+            .gradleProperty("signingPassword")
+            .orElse(providers.environmentVariable("SIGNING_PASSWORD"))
+            .orNull
+
+    isRequired = project.isRemotePublishingRequested()
+
+    if (!signingKey.isNullOrBlank()) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+    }
+
+    sign(publishing.publications)
 }
 
 dependencies {
@@ -65,16 +137,24 @@ tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
 }
 
+tasks.withType<Jar>().configureEach {
+    from(rootProject.file("LICENSE")) {
+        into("META-INF")
+    }
+
+    manifest {
+        attributes(
+            "Implementation-Title" to project.name,
+            "Implementation-Version" to project.version,
+        )
+    }
+}
+
 tasks.withType<Javadoc>().configureEach {
     isFailOnError = true
     options.encoding = "UTF-8"
     options.memberLevel = JavadocMemberLevel.PACKAGE
     (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:all", "-quiet")
-
-    // The learning project deliberately starts with package documentation and no API types.
-    onlyIf("there are API types to document") {
-        source.files.any { it.name != "package-info.java" }
-    }
 }
 
 tasks.test {
@@ -93,3 +173,10 @@ tasks.check {
     dependsOn(tasks.javadoc)
     dependsOn(tasks.spotlessCheck)
 }
+
+fun Project.isRemotePublishingRequested(): Boolean =
+    gradle.startParameter.taskNames.any { taskName ->
+        taskName.contains("publish", ignoreCase = true) &&
+            !taskName.contains("MavenLocal", ignoreCase = true) &&
+            !taskName.contains("LocalBuild", ignoreCase = true)
+    }
