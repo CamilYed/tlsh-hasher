@@ -17,10 +17,10 @@ package io.github.camilyed.tlsh;
  * second percentage = Q2 * 100 / Q3
  * }</pre>
  *
- * <p>Any fractional part is discarded when the floating-point result is converted to an integer.
- * Only the four least significant bits of each percentage are retained with {@code & 0x0F}. Four
- * bits are called a nibble and can represent values {@code 0..15}. This means the stored nibble is
- * the percentage modulo 16, not the complete percentage from {@code 0} through {@code 100}.
+ * <p>Integer division discards any fractional part. Only the four least significant bits of each
+ * percentage are retained with {@code & 0x0F}. Four bits are called a nibble and can represent
+ * values {@code 0..15}. This means the stored nibble is the percentage modulo 16, not the complete
+ * percentage from {@code 0} through {@code 100}.
  *
  * <p>The first-quartile nibble occupies the upper half of the byte and the second-quartile nibble
  * occupies the lower half. For {@code Q1 = 3}, {@code Q2 = 6}, and {@code Q3 = 10}:
@@ -63,8 +63,8 @@ final class QuartileRatioEncoder {
   }
 
   /** Calculates a whole-number percentage relative to the third quartile. */
-  private static int percentage(final int quartile, final int thirdQuartile) {
-    return (int) ((quartile * 100.0f) / thirdQuartile);
+  private static int percentage(final long quartile, final long thirdQuartile) {
+    return (int) ((quartile * 100) / thirdQuartile);
   }
 
   /** Ensures that every quartile can represent a histogram bucket count. */

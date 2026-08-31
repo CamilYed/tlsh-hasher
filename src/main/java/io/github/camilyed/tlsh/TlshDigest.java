@@ -1,6 +1,7 @@
 package io.github.camilyed.tlsh;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Holds the four calculated components of one compact similarity digest.
@@ -30,9 +31,10 @@ import java.util.Arrays;
  * created digests with identical components are equal and work correctly as map keys or set
  * members.
  *
- * <p>This type does not calculate the four components and does not define their textual order,
- * hexadecimal representation, or version prefix. Those responsibilities belong to later assembly
- * and formatting stages.
+ * <p>The digest can be converted to its canonical text with {@link #encoded()}, restored with
+ * {@link #parse(String)}, and compared with another digest using {@link #distanceTo(TlshDigest)}.
+ * The distance is a TLSH difference score rather than a percentage: smaller scores mean that the
+ * inputs are more similar.
  *
  * @param checksum rolling checksum represented as an unsigned byte value in {@code 0..255}
  * @param lengthCode encoded input-length range in {@code 0..169}
@@ -40,7 +42,7 @@ import java.util.Arrays;
  *     0..255}
  * @param histogramCode packed 32-byte histogram representation
  */
-record TlshDigest(int checksum, int lengthCode, int quartileRatios, byte[] histogramCode) {
+public record TlshDigest(int checksum, int lengthCode, int quartileRatios, byte[] histogramCode) {
   private static final int MAX_UNSIGNED_BYTE_VALUE = 255;
   private static final int MAX_LENGTH_CODE = 169;
   private static final int HISTOGRAM_CODE_SIZE = 32;
@@ -48,10 +50,11 @@ record TlshDigest(int checksum, int lengthCode, int quartileRatios, byte[] histo
   /**
    * Validates every component and stores a defensive copy of the histogram code.
    *
+   * @throws NullPointerException when {@code histogramCode} is {@code null}
    * @throws IllegalArgumentException when a numeric component is outside its supported range or the
    *     histogram code does not contain exactly 32 bytes
    */
-  TlshDigest {
+  public TlshDigest {
     validateUnsignedByte(checksum, "Checksum");
     validateLengthCode(lengthCode);
     validateUnsignedByte(quartileRatios, "Quartile ratios");
@@ -70,6 +73,64 @@ record TlshDigest(int checksum, int lengthCode, int quartileRatios, byte[] histo
     return histogramCode.clone();
   }
 
+  /**
+   * Returns the canonical 72-character versioned representation of this digest.
+   *
+   * @return uppercase hexadecimal text beginning with {@code T1}
+   */
+  public String encoded() {
+    return new TlshDigestFormatter().format(this);
+  }
+
+  /**
+   * Parses a canonical 72-character {@code T1} representation.
+   *
+   * @param encodedDigest versioned hexadecimal digest text
+   * @return immutable structured digest
+   * @throws NullPointerException when {@code encodedDigest} is {@code null}
+   * @throws IllegalArgumentException when the text has an invalid length, prefix, or hexadecimal
+   *     content
+   */
+  public static TlshDigest parse(final String encodedDigest) {
+    return new TlshDigestParser().parse(encodedDigest);
+  }
+
+  /**
+   * Calculates the TLSH difference score including the encoded input lengths.
+   *
+   * <p>The result is not a percentage or probability. Lower values indicate greater similarity, and
+   * comparing a digest with itself returns zero.
+   *
+   * @param other digest to compare with this digest
+   * @return nonnegative TLSH difference score
+   * @throws NullPointerException when {@code other} is {@code null}
+   */
+  public int distanceTo(final TlshDigest other) {
+    return distanceTo(other, true);
+  }
+
+  /**
+   * Calculates the TLSH difference score with optional input-length contribution.
+   *
+   * @param other digest to compare with this digest
+   * @param includeLength whether differences between encoded input lengths should affect the score
+   * @return nonnegative TLSH difference score
+   * @throws NullPointerException when {@code other} is {@code null}
+   */
+  public int distanceTo(final TlshDigest other, final boolean includeLength) {
+    return new TlshDistanceCalculator().calculate(this, other, includeLength);
+  }
+
+  /**
+   * Returns the same canonical representation as {@link #encoded()}.
+   *
+   * @return uppercase hexadecimal text beginning with {@code T1}
+   */
+  @Override
+  public String toString() {
+    return encoded();
+  }
+
   /** Ensures that a logical unsigned byte can be stored without losing information. */
   private static void validateUnsignedByte(final int value, final String componentName) {
     if (value < 0 || value > MAX_UNSIGNED_BYTE_VALUE) {
@@ -86,6 +147,7 @@ record TlshDigest(int checksum, int lengthCode, int quartileRatios, byte[] histo
 
   /** Ensures that the code contains four packed histogram levels per output byte. */
   private static void validateHistogramCodeSize(final byte[] histogramCode) {
+    Objects.requireNonNull(histogramCode, "histogramCode");
     if (histogramCode.length != HISTOGRAM_CODE_SIZE) {
       throw new IllegalArgumentException("Histogram code must contain exactly 32 bytes");
     }

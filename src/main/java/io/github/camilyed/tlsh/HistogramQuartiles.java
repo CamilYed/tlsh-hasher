@@ -12,4 +12,4 @@ package io.github.camilyed.tlsh;
  * @param secondQuartile upper count threshold for the lower half of buckets; also the median
  * @param thirdQuartile upper count threshold for the lowest three quarters of buckets
  */
-record HistogramQuartiles(int firstQuartile, int secondQuartile, int thirdQuartile) {}
+record HistogramQuartiles(long firstQuartile, long secondQuartile, long thirdQuartile) {}

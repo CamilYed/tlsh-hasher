@@ -17,7 +17,7 @@ final class HistogramTest {
     histogram.recordHit(255);
 
     // when
-    final int[] effectiveBucketCounts = histogram.effectiveBucketCounts();
+    final long[] effectiveBucketCounts = histogram.effectiveBucketCounts();
 
     // then
     assertThat(effectiveBucketCounts).hasSize(128);

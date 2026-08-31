@@ -148,11 +148,11 @@ final class TlshAccumulator {
    * validation still protects the individual encoded fields afterward.
    *
    * @return immutable snapshot of the current accumulated state in compact digest form
-   * @throws IllegalArgumentException when the current state cannot be represented by one of the
-   *     digest components
+   * @throws IllegalStateException when the accumulated input is too short, too long, or does not
+   *     occupy enough effective histogram buckets
    */
   TlshDigest finish() {
-    final int[] effectiveBucketCounts = featureHistogram.effectiveBucketCounts();
+    final long[] effectiveBucketCounts = featureHistogram.effectiveBucketCounts();
     validateDigestEligibility(effectiveBucketCounts);
 
     return digestAssembler.assemble(
@@ -162,7 +162,7 @@ final class TlshAccumulator {
   /**
    * Ensures that the current stream contains enough data and feature diversity for finalization.
    */
-  private void validateDigestEligibility(final int[] effectiveBucketCounts) {
+  private void validateDigestEligibility(final long[] effectiveBucketCounts) {
     if (!digestEligibilityChecker.isEligible(inputLength, effectiveBucketCounts)) {
       throw new IllegalStateException("Accumulated input is not eligible for a TLSH digest");
     }

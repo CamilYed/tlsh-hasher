@@ -27,9 +27,10 @@ import java.util.Arrays;
  * entire input, the counters describe how frequently different local byte patterns occur. Similar
  * files are expected to produce similar distributions even when they are not byte-for-byte equal.
  *
- * <p>An {@code int[]} is used because every valid index is known in advance and the range is dense.
+ * <p>A {@code long[]} is used because every valid index is known in advance and the range is dense.
  * Array elements start at zero, provide direct constant-time access, and avoid the hashing and
- * object overhead of a {@code Map<Integer, Integer>}.
+ * object overhead of a {@code Map<Integer, Long>}. A {@code long} counter also prevents overflow
+ * while processing inputs larger than the approximately 2 GB range of {@code int}.
  *
  * <p>This 256-counter accumulator is an intermediate TLSH structure, not the final digest. A later
  * stage derives quartiles and compact two-bit values from the effective histogram buckets. Bucket
@@ -46,11 +47,11 @@ final class Histogram {
 
   private static final int BUCKET_COUNT = 256;
   private static final int EFFECTIVE_BUCKET_COUNT = 128;
-  private final int[] bucketCounts;
+  private final long[] bucketCounts;
 
   /** Creates an empty histogram with all 256 bucket counters initialized to zero. */
   Histogram() {
-    this.bucketCounts = new int[BUCKET_COUNT];
+    this.bucketCounts = new long[BUCKET_COUNT];
   }
 
   /**
@@ -70,7 +71,7 @@ final class Histogram {
    * @return number of feature hits recorded in the bucket
    * @throws IndexOutOfBoundsException when the index is outside the range {@code 0..255}
    */
-  int hitCountAt(final int bucketIndex) {
+  long hitCountAt(final int bucketIndex) {
     return bucketCounts[bucketIndex];
   }
 
@@ -84,7 +85,7 @@ final class Histogram {
    *
    * @return a new 128-element array containing the effective bucket counts
    */
-  int[] effectiveBucketCounts() {
+  long[] effectiveBucketCounts() {
     return Arrays.copyOf(bucketCounts, EFFECTIVE_BUCKET_COUNT);
   }
 }

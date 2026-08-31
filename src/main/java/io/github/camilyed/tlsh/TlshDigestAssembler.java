@@ -89,7 +89,7 @@ final class TlshDigestAssembler {
    *     encoders or by the resulting digest
    */
   TlshDigest assemble(
-      final long inputLength, final int checksum, final int[] effectiveBucketCounts) {
+      final long inputLength, final int checksum, final long[] effectiveBucketCounts) {
     final int lengthCode = lengthEncoder.encode(inputLength);
 
     final HistogramQuartiles quartiles = quartileCalculator.calculate(effectiveBucketCounts);

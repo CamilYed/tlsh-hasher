@@ -10,7 +10,7 @@ final class TlshDigestAssemblerTest {
   @Test
   void shouldAssembleDigestFromAccumulatedInputStatistics() {
     // given
-    final int[] effectiveBucketCounts = new int[128];
+    final long[] effectiveBucketCounts = new long[128];
     Arrays.fill(effectiveBucketCounts, 0, 32, 3);
     Arrays.fill(effectiveBucketCounts, 32, 64, 6);
     Arrays.fill(effectiveBucketCounts, 64, 96, 10);

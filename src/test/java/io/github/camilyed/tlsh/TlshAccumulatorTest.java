@@ -222,8 +222,8 @@ final class TlshAccumulatorTest {
         new QuartileRatioEncoder());
   }
 
-  private static int totalHitCount(final Histogram histogram) {
-    int totalHitCount = 0;
+  private static long totalHitCount(final Histogram histogram) {
+    long totalHitCount = 0;
     for (int bucketIndex = 0; bucketIndex < 256; bucketIndex++) {
       totalHitCount += histogram.hitCountAt(bucketIndex);
     }

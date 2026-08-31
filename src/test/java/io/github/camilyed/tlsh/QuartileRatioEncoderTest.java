@@ -8,6 +8,20 @@ import org.junit.jupiter.api.Test;
 final class QuartileRatioEncoderTest {
 
   @Test
+  void shouldEncodeRatiosForQuartilesAboveIntegerRange() {
+    // given
+    final HistogramQuartiles quartiles =
+        new HistogramQuartiles(3_000_000_000L, 6_000_000_000L, 10_000_000_000L);
+    final QuartileRatioEncoder encoder = new QuartileRatioEncoder();
+
+    // when
+    final byte encodedRatios = encoder.encode(quartiles);
+
+    // then
+    assertThat(Byte.toUnsignedInt(encodedRatios)).isEqualTo(0xEC);
+  }
+
+  @Test
   void shouldRejectZeroThirdQuartile() {
     // given
     final HistogramQuartiles quartiles = new HistogramQuartiles(0, 0, 0);

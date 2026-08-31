@@ -43,16 +43,16 @@ final class HistogramQuantizer {
    * @throws IllegalArgumentException when there are not exactly 128 counts or the quartiles are not
    *     in nondecreasing order
    */
-  int[] quantize(final int[] bucketCounts, final HistogramQuartiles quartiles) {
+  int[] quantize(final long[] bucketCounts, final HistogramQuartiles quartiles) {
     validateBucketCount(bucketCounts);
     validateQuartileOrder(quartiles);
 
     final int[] result = new int[bucketCounts.length];
-    final int firstQuartile = quartiles.firstQuartile();
-    final int secondQuartile = quartiles.secondQuartile();
-    final int thirdQuartile = quartiles.thirdQuartile();
+    final long firstQuartile = quartiles.firstQuartile();
+    final long secondQuartile = quartiles.secondQuartile();
+    final long thirdQuartile = quartiles.thirdQuartile();
     for (int i = 0; i < bucketCounts.length; i++) {
-      final int bucketCount = bucketCounts[i];
+      final long bucketCount = bucketCounts[i];
 
       if (bucketCount > thirdQuartile) {
         result[i] = 3;
@@ -67,7 +67,7 @@ final class HistogramQuantizer {
   }
 
   /** Ensures that one level will be produced for every effective histogram bucket. */
-  private static void validateBucketCount(final int[] bucketCounts) {
+  private static void validateBucketCount(final long[] bucketCounts) {
     if (bucketCounts.length != EFFECTIVE_BUCKET_COUNT) {
       throw new IllegalArgumentException("Quantization requires exactly 128 bucket counts");
     }

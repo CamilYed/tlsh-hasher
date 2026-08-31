@@ -14,14 +14,14 @@ final class TlshDigestEligibilityCheckerTest {
     final TlshDigestEligibilityChecker checker = new TlshDigestEligibilityChecker();
 
     // then
-    assertThatIllegalArgumentException().isThrownBy(() -> checker.isEligible(256, new int[127]));
-    assertThatIllegalArgumentException().isThrownBy(() -> checker.isEligible(256, new int[129]));
+    assertThatIllegalArgumentException().isThrownBy(() -> checker.isEligible(256, new long[127]));
+    assertThatIllegalArgumentException().isThrownBy(() -> checker.isEligible(256, new long[129]));
   }
 
   @Test
   void shouldRejectInputLengthAboveMaximumSupportedRange() {
     // given
-    final int[] sufficientlyDistributedBucketCounts = new int[128];
+    final long[] sufficientlyDistributedBucketCounts = new long[128];
     Arrays.fill(sufficientlyDistributedBucketCounts, 0, 65, 1);
     final TlshDigestEligibilityChecker checker = new TlshDigestEligibilityChecker();
 
@@ -33,7 +33,7 @@ final class TlshDigestEligibilityCheckerTest {
   @Test
   void shouldRequireAtLeast256InputBytes() {
     // given
-    final int[] sufficientlyDistributedBucketCounts = new int[128];
+    final long[] sufficientlyDistributedBucketCounts = new long[128];
     Arrays.fill(sufficientlyDistributedBucketCounts, 0, 65, 1);
     final TlshDigestEligibilityChecker checker = new TlshDigestEligibilityChecker();
 
@@ -45,7 +45,7 @@ final class TlshDigestEligibilityCheckerTest {
   @Test
   void shouldRequireMoreThanHalfEffectiveBucketsToBeNonZero() {
     // given
-    final int[] effectiveBucketCounts = new int[128];
+    final long[] effectiveBucketCounts = new long[128];
     Arrays.fill(effectiveBucketCounts, 0, 64, 1);
     final TlshDigestEligibilityChecker checker = new TlshDigestEligibilityChecker();
 

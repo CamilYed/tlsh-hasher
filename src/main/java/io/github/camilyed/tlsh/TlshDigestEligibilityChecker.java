@@ -47,7 +47,7 @@ final class TlshDigestEligibilityChecker {
    * @return {@code true} when the state can produce a standard digest; otherwise {@code false}
    * @throws IllegalArgumentException when the array does not contain exactly 128 bucket counts
    */
-  boolean isEligible(final long inputLength, final int[] effectiveBucketCounts) {
+  boolean isEligible(final long inputLength, final long[] effectiveBucketCounts) {
     validateEffectiveBucketCount(effectiveBucketCounts);
 
     if (inputLength < MINIMUM_INPUT_LENGTH || inputLength > LengthEncoder.MAX_INPUT_LENGTH) {
@@ -55,7 +55,7 @@ final class TlshDigestEligibilityChecker {
     }
 
     int nonZeroBucketCount = 0;
-    for (final int bucketCount : effectiveBucketCounts) {
+    for (final long bucketCount : effectiveBucketCounts) {
       if (bucketCount > 0) {
         nonZeroBucketCount++;
       }
@@ -65,7 +65,7 @@ final class TlshDigestEligibilityChecker {
   }
 
   /** Ensures that eligibility is evaluated over the complete effective histogram. */
-  private static void validateEffectiveBucketCount(final int[] effectiveBucketCounts) {
+  private static void validateEffectiveBucketCount(final long[] effectiveBucketCounts) {
     if (effectiveBucketCounts.length != EFFECTIVE_BUCKET_COUNT) {
       throw new IllegalArgumentException(
           "Eligibility requires exactly 128 effective bucket counts");

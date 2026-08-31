@@ -15,16 +15,16 @@ final class HistogramQuantizerTest {
 
     // then
     assertThatIllegalArgumentException()
-        .isThrownBy(() -> quantizer.quantize(new int[127], quartiles));
+        .isThrownBy(() -> quantizer.quantize(new long[127], quartiles));
     assertThatIllegalArgumentException()
-        .isThrownBy(() -> quantizer.quantize(new int[129], quartiles));
+        .isThrownBy(() -> quantizer.quantize(new long[129], quartiles));
   }
 
   @Test
   void shouldRejectQuartilesInDescendingOrder() {
     // given
     final HistogramQuantizer quantizer = new HistogramQuantizer();
-    final int[] bucketCounts = new int[128];
+    final long[] bucketCounts = new long[128];
 
     // then
     assertThatIllegalArgumentException()
@@ -36,7 +36,7 @@ final class HistogramQuantizerTest {
   @Test
   void shouldAssignTwoBitValueUsingQuartileBoundaries() {
     // given
-    final int[] bucketCounts = new int[128];
+    final long[] bucketCounts = new long[128];
     bucketCounts[0] = 0;
     bucketCounts[1] = 10;
     bucketCounts[2] = 11;
@@ -57,12 +57,12 @@ final class HistogramQuantizerTest {
   @Test
   void shouldQuantizeWithoutChangingBucketCounts() {
     // given
-    final int[] bucketCounts = new int[128];
+    final long[] bucketCounts = new long[128];
     bucketCounts[0] = 5;
     bucketCounts[1] = 15;
     bucketCounts[2] = 25;
     bucketCounts[3] = 35;
-    final int[] originalBucketCounts = bucketCounts.clone();
+    final long[] originalBucketCounts = bucketCounts.clone();
     final HistogramQuartiles quartiles = new HistogramQuartiles(10, 20, 30);
     final HistogramQuantizer quantizer = new HistogramQuantizer();
 
