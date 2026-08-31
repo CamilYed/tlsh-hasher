@@ -6,7 +6,10 @@ import static org.assertj.core.api.Assertions.assertThatIOException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 final class TlshApiTest {
 
@@ -104,6 +107,30 @@ final class TlshApiTest {
 
     // then
     assertThatIOException().isThrownBy(() -> Tlsh.hash(failingInput)).withMessage("read failed");
+  }
+
+  @Test
+  void shouldHashFileWithoutLoadingItAsACompleteByteArray(@TempDir final Path temporaryDirectory)
+      throws IOException {
+    // given
+    final byte[] input = deterministicBytes(4_096);
+    final Path inputFile = temporaryDirectory.resolve("input.bin");
+    Files.write(inputFile, input);
+
+    // when
+    final TlshDigest digest = Tlsh.hash(inputFile);
+
+    // then
+    assertThat(digest).isEqualTo(Tlsh.hash(input));
+  }
+
+  @Test
+  void shouldPropagateFailureWhenFileDoesNotExist(@TempDir final Path temporaryDirectory) {
+    // given
+    final Path missingFile = temporaryDirectory.resolve("missing.bin");
+
+    // then
+    assertThatIOException().isThrownBy(() -> Tlsh.hash(missingFile));
   }
 
   private static byte[] deterministicBytes(final int size) {

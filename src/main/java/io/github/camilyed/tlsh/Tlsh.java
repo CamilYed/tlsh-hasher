@@ -2,6 +2,8 @@ package io.github.camilyed.tlsh;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Objects;
 
 /** Convenient entry point for one-shot and incremental TLSH calculation. */
@@ -50,6 +52,27 @@ public final class Tlsh {
       hasher.update(buffer, 0, bytesRead);
     }
     return hasher.finish();
+  }
+
+  /**
+   * Calculates a digest for the contents of one filesystem path.
+   *
+   * <p>This is the convenient file-oriented counterpart of {@link #hash(InputStream)}. It opens the
+   * file as a stream, processes it incrementally, and closes that internally created stream before
+   * returning. The complete file is not loaded into memory.
+   *
+   * @param path path of the file to hash
+   * @return immutable digest
+   * @throws NullPointerException when {@code path} is {@code null}
+   * @throws IOException when the file cannot be opened, read, or closed
+   * @throws IllegalStateException when the input does not satisfy the standard length and feature
+   *     diversity requirements
+   */
+  public static TlshDigest hash(final Path path) throws IOException {
+    Objects.requireNonNull(path, "path");
+    try (InputStream input = Files.newInputStream(path)) {
+      return hash(input);
+    }
   }
 
   /**

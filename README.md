@@ -61,8 +61,14 @@ The standard API creates a digest only when:
 rejects low-information inputs whose repeated local patterns would not produce a meaningful
 similarity digest.
 
-The streaming API currently accepts bytes and byte-array ranges. An `InputStream` convenience
-method reads the stream incrementally and leaves ownership of closing it with the caller:
+Hash a file directly. The library opens and closes the file stream itself:
+
+```java
+TlshDigest digest = Tlsh.hash(path);
+```
+
+When an existing `InputStream` is supplied, the library reads it incrementally but leaves ownership
+of closing it with the caller:
 
 ```java
 try (InputStream input = Files.newInputStream(path)) {
