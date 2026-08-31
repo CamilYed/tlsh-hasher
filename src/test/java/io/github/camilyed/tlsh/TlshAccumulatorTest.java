@@ -1,6 +1,7 @@
 package io.github.camilyed.tlsh;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 import org.junit.jupiter.api.Test;
 
@@ -77,7 +78,12 @@ final class TlshAccumulatorTest {
     final Histogram histogram = new Histogram();
     final ChecksumAccumulator checksumAccumulator = new ChecksumAccumulator(pearsonHash);
     final TlshAccumulator tlshAccumulator =
-        new TlshAccumulator(bucketMapper, histogram, checksumAccumulator, newDigestAssembler());
+        new TlshAccumulator(
+            bucketMapper,
+            histogram,
+            checksumAccumulator,
+            newDigestAssembler(),
+            new TlshDigestEligibilityChecker());
 
     // when
     final byte[] inputBytes = {'A', 'B', 'C', 'D', 'E'};
@@ -107,7 +113,12 @@ final class TlshAccumulatorTest {
     final Histogram histogram = new Histogram();
     final ChecksumAccumulator checksumAccumulator = new ChecksumAccumulator(pearsonHash);
     final TlshAccumulator tlshAccumulator =
-        new TlshAccumulator(bucketMapper, histogram, checksumAccumulator, newDigestAssembler());
+        new TlshAccumulator(
+            bucketMapper,
+            histogram,
+            checksumAccumulator,
+            newDigestAssembler(),
+            new TlshDigestEligibilityChecker());
 
     // when
     final byte[] firstFourBytes = {'A', 'B', 'C', 'D'};
@@ -140,7 +151,11 @@ final class TlshAccumulatorTest {
     final TlshDigestAssembler digestAssembler = newDigestAssembler();
     final TlshAccumulator tlshAccumulator =
         new TlshAccumulator(
-            new BucketMapper(pearsonHash), histogram, checksumAccumulator, digestAssembler);
+            new BucketMapper(pearsonHash),
+            histogram,
+            checksumAccumulator,
+            digestAssembler,
+            new TlshDigestEligibilityChecker());
 
     final byte[] inputBytes = new byte[256];
     for (int byteIndex = 0; byteIndex < inputBytes.length; byteIndex++) {
@@ -158,12 +173,44 @@ final class TlshAccumulatorTest {
     assertThat(digest).isEqualTo(expectedDigest);
   }
 
+  @Test
+  void shouldRejectFinishWhenInputIsTooShort() {
+    // given
+    final PearsonHash pearsonHash = new PearsonHash();
+    final TlshAccumulator tlshAccumulator =
+        newAccumulator(pearsonHash, new Histogram(), new ChecksumAccumulator(pearsonHash));
+    for (int byteIndex = 0; byteIndex < 255; byteIndex++) {
+      tlshAccumulator.addByte((byte) (byteIndex * 31 + 17));
+    }
+
+    // then
+    assertThatIllegalStateException().isThrownBy(tlshAccumulator::finish);
+  }
+
+  @Test
+  void shouldRejectFinishWhenFeaturesOccupyTooFewBuckets() {
+    // given
+    final PearsonHash pearsonHash = new PearsonHash();
+    final TlshAccumulator tlshAccumulator =
+        newAccumulator(pearsonHash, new Histogram(), new ChecksumAccumulator(pearsonHash));
+    for (int byteIndex = 0; byteIndex < 256; byteIndex++) {
+      tlshAccumulator.addByte((byte) 'A');
+    }
+
+    // then
+    assertThatIllegalStateException().isThrownBy(tlshAccumulator::finish);
+  }
+
   private static TlshAccumulator newAccumulator(
       final PearsonHash pearsonHash,
       final Histogram histogram,
       final ChecksumAccumulator checksumAccumulator) {
     return new TlshAccumulator(
-        new BucketMapper(pearsonHash), histogram, checksumAccumulator, newDigestAssembler());
+        new BucketMapper(pearsonHash),
+        histogram,
+        checksumAccumulator,
+        newDigestAssembler(),
+        new TlshDigestEligibilityChecker());
   }
 
   private static TlshDigestAssembler newDigestAssembler() {

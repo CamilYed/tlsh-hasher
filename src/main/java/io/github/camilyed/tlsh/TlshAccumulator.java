@@ -68,6 +68,7 @@ final class TlshAccumulator {
   private final Histogram featureHistogram;
   private final ChecksumAccumulator checksumAccumulator;
   private final TlshDigestAssembler digestAssembler;
+  private final TlshDigestEligibilityChecker digestEligibilityChecker;
   private final SlidingWindow slidingWindow = new SlidingWindow();
   private long inputLength;
 
@@ -83,16 +84,20 @@ final class TlshAccumulator {
    * @param checksumAccumulator accumulator that receives the two newest bytes of every full window
    * @param digestAssembler finalization pipeline that transforms the current accumulated state into
    *     an immutable digest
+   * @param digestEligibilityChecker policy that decides whether the accumulated length and feature
+   *     distribution can produce a standard digest
    */
   TlshAccumulator(
       final BucketMapper bucketMapper,
       final Histogram featureHistogram,
       final ChecksumAccumulator checksumAccumulator,
-      final TlshDigestAssembler digestAssembler) {
+      final TlshDigestAssembler digestAssembler,
+      final TlshDigestEligibilityChecker digestEligibilityChecker) {
     this.bucketMapper = bucketMapper;
     this.featureHistogram = featureHistogram;
     this.checksumAccumulator = checksumAccumulator;
     this.digestAssembler = digestAssembler;
+    this.digestEligibilityChecker = digestEligibilityChecker;
     this.inputLength = 0;
   }
 
@@ -138,18 +143,28 @@ final class TlshAccumulator {
    * the checksum, reset the sliding window, or clear any counters. Calling it repeatedly without
    * adding bytes therefore produces equal digests.
    *
-   * <p>This method currently relies on component-level validation performed during assembly. For
-   * example, an empty stream cannot be length-encoded and a third quartile of zero cannot be used
-   * as the denominator of the ratio encoding. A later whole-stream eligibility policy will decide
-   * whether the input also meets the algorithm's minimum length and diversity requirements before
-   * finalization is exposed as public API.
+   * <p>Before assembly begins, the current state must satisfy the standard whole-stream eligibility
+   * policy: the supported length range and enough occupied effective histogram buckets. Component
+   * validation still protects the individual encoded fields afterward.
    *
    * @return immutable snapshot of the current accumulated state in compact digest form
    * @throws IllegalArgumentException when the current state cannot be represented by one of the
    *     digest components
    */
   TlshDigest finish() {
+    final int[] effectiveBucketCounts = featureHistogram.effectiveBucketCounts();
+    validateDigestEligibility(effectiveBucketCounts);
+
     return digestAssembler.assemble(
-        inputLength, checksumAccumulator.value(), featureHistogram.effectiveBucketCounts());
+        inputLength, checksumAccumulator.value(), effectiveBucketCounts);
+  }
+
+  /**
+   * Ensures that the current stream contains enough data and feature diversity for finalization.
+   */
+  private void validateDigestEligibility(final int[] effectiveBucketCounts) {
+    if (!digestEligibilityChecker.isEligible(inputLength, effectiveBucketCounts)) {
+      throw new IllegalStateException("Accumulated input is not eligible for a TLSH digest");
+    }
   }
 }
