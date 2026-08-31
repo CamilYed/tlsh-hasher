@@ -1,6 +1,7 @@
 import com.diffplug.gradle.spotless.SpotlessExtension
 import org.gradle.api.Project
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
@@ -159,6 +160,16 @@ tasks.withType<Javadoc>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+
+    val officialFixtureDirectory = providers.systemProperty("tlsh.officialFixtureDirectory")
+    if (officialFixtureDirectory.isPresent) {
+        val fixtureDirectory = officialFixtureDirectory.get()
+        inputs
+            .dir(fixtureDirectory)
+            .withPropertyName("officialTlshFixtureDirectory")
+            .withPathSensitivity(PathSensitivity.RELATIVE)
+        systemProperty("tlsh.officialFixtureDirectory", fixtureDirectory)
+    }
 
     testLogging {
         events = setOf(TestLogEvent.PASSED, TestLogEvent.SKIPPED, TestLogEvent.FAILED)

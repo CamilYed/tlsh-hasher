@@ -22,6 +22,15 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
+      - name: Checkout official TLSH 5.0.0 fixtures
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: trendmicro/tlsh
+          ref: 5.0.0
+          path: .reference/tlsh
+          persist-credentials: false
+          sparse-checkout: Testing
+
       - name: Set up Java
         uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
         with:
@@ -35,4 +44,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Verify formatting, tests, and Javadoc
-        run: ./gradlew spotlessCheck clean build
+        run: >-
+          ./gradlew
+          -Dtlsh.officialFixtureDirectory=${{ github.workspace }}/.reference/tlsh/Testing/example_data
+          spotlessCheck clean build

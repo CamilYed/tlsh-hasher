@@ -5,8 +5,6 @@ All notable changes to this project are documented here. The format loosely foll
 
 ## [Unreleased]
 
-## [0.1.0] — 2026-08-31
-
 ### Added
 
 - Calculate standard 128-bucket, one-byte-checksum `T1` digests.
