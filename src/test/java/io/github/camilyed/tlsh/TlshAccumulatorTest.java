@@ -11,8 +11,7 @@ final class TlshAccumulatorTest {
     // given
     final PearsonHash pearsonHash = new PearsonHash();
     final TlshAccumulator tlshAccumulator =
-        new TlshAccumulator(
-            new BucketMapper(pearsonHash), new Histogram(), new ChecksumAccumulator(pearsonHash));
+        newAccumulator(pearsonHash, new Histogram(), new ChecksumAccumulator(pearsonHash));
 
     // then
     assertThat(tlshAccumulator.inputLength()).isZero();
@@ -41,7 +40,7 @@ final class TlshAccumulatorTest {
     final Histogram histogram = new Histogram();
     final ChecksumAccumulator checksumAccumulator = new ChecksumAccumulator(pearsonHash);
     final TlshAccumulator tlshAccumulator =
-        new TlshAccumulator(new BucketMapper(pearsonHash), histogram, checksumAccumulator);
+        newAccumulator(pearsonHash, histogram, checksumAccumulator);
 
     // when
     final byte[] firstFourBytes = {'A', 'B', 'C', 'D'};
@@ -78,7 +77,7 @@ final class TlshAccumulatorTest {
     final Histogram histogram = new Histogram();
     final ChecksumAccumulator checksumAccumulator = new ChecksumAccumulator(pearsonHash);
     final TlshAccumulator tlshAccumulator =
-        new TlshAccumulator(bucketMapper, histogram, checksumAccumulator);
+        new TlshAccumulator(bucketMapper, histogram, checksumAccumulator, newDigestAssembler());
 
     // when
     final byte[] inputBytes = {'A', 'B', 'C', 'D', 'E'};
@@ -108,7 +107,7 @@ final class TlshAccumulatorTest {
     final Histogram histogram = new Histogram();
     final ChecksumAccumulator checksumAccumulator = new ChecksumAccumulator(pearsonHash);
     final TlshAccumulator tlshAccumulator =
-        new TlshAccumulator(bucketMapper, histogram, checksumAccumulator);
+        new TlshAccumulator(bucketMapper, histogram, checksumAccumulator, newDigestAssembler());
 
     // when
     final byte[] firstFourBytes = {'A', 'B', 'C', 'D'};
@@ -130,6 +129,50 @@ final class TlshAccumulatorTest {
 
     // then
     assertThat(totalHitCount(histogram)).isEqualTo(12);
+  }
+
+  @Test
+  void shouldFinishAccumulatedStateAsDigest() {
+    // given
+    final PearsonHash pearsonHash = new PearsonHash();
+    final Histogram histogram = new Histogram();
+    final ChecksumAccumulator checksumAccumulator = new ChecksumAccumulator(pearsonHash);
+    final TlshDigestAssembler digestAssembler = newDigestAssembler();
+    final TlshAccumulator tlshAccumulator =
+        new TlshAccumulator(
+            new BucketMapper(pearsonHash), histogram, checksumAccumulator, digestAssembler);
+
+    final byte[] inputBytes = new byte[256];
+    for (int byteIndex = 0; byteIndex < inputBytes.length; byteIndex++) {
+      inputBytes[byteIndex] = (byte) (byteIndex * 31 + 17);
+      tlshAccumulator.addByte(inputBytes[byteIndex]);
+    }
+    final TlshDigest expectedDigest =
+        digestAssembler.assemble(
+            inputBytes.length, checksumAccumulator.value(), histogram.effectiveBucketCounts());
+
+    // when
+    final TlshDigest digest = tlshAccumulator.finish();
+
+    // then
+    assertThat(digest).isEqualTo(expectedDigest);
+  }
+
+  private static TlshAccumulator newAccumulator(
+      final PearsonHash pearsonHash,
+      final Histogram histogram,
+      final ChecksumAccumulator checksumAccumulator) {
+    return new TlshAccumulator(
+        new BucketMapper(pearsonHash), histogram, checksumAccumulator, newDigestAssembler());
+  }
+
+  private static TlshDigestAssembler newDigestAssembler() {
+    return new TlshDigestAssembler(
+        new LengthEncoder(),
+        new HistogramQuartileCalculator(),
+        new HistogramQuantizer(),
+        new HistogramCodePacker(),
+        new QuartileRatioEncoder());
   }
 
   private static int totalHitCount(final Histogram histogram) {

@@ -51,16 +51,23 @@ package io.github.camilyed.tlsh;
  * multiple times. The accumulator stores counts and checksum state, not the original input bytes or
  * every generated triplet.
  *
- * <p>This class does not yet calculate the compact input-length encoding, quartiles, two-bit
- * quantization, the final digest, or distance between digests.
+ * <p>The streaming updates retain the raw values described above. When {@link #finish()} is called,
+ * the current exact length, checksum, and effective histogram counts are passed to {@link
+ * TlshDigestAssembler}. The assembler calculates the compact length code, quartiles, two-bit
+ * histogram levels, packed histogram code, and quartile ratios, then returns an immutable {@link
+ * TlshDigest}. Distance calculation and conversion to the textual digest format remain separate
+ * responsibilities.
  *
  * <p>Instances are mutable and represent the state of one input stream. A single instance should
- * not be shared between unrelated files or updated concurrently from multiple threads.
+ * not be shared between unrelated files or updated concurrently from multiple threads. Finishing
+ * creates a snapshot and does not reset or close the accumulator; later bytes continue the same
+ * stream and a later call to {@code finish()} reflects the extended state.
  */
 final class TlshAccumulator {
   private final BucketMapper bucketMapper;
   private final Histogram featureHistogram;
   private final ChecksumAccumulator checksumAccumulator;
+  private final TlshDigestAssembler digestAssembler;
   private final SlidingWindow slidingWindow = new SlidingWindow();
   private long inputLength;
 
@@ -74,14 +81,18 @@ final class TlshAccumulator {
    * @param bucketMapper mapper that turns each full five-byte window into six bucket indices
    * @param featureHistogram histogram that receives the resulting bucket hits
    * @param checksumAccumulator accumulator that receives the two newest bytes of every full window
+   * @param digestAssembler finalization pipeline that transforms the current accumulated state into
+   *     an immutable digest
    */
   TlshAccumulator(
       final BucketMapper bucketMapper,
       final Histogram featureHistogram,
-      final ChecksumAccumulator checksumAccumulator) {
+      final ChecksumAccumulator checksumAccumulator,
+      final TlshDigestAssembler digestAssembler) {
     this.bucketMapper = bucketMapper;
     this.featureHistogram = featureHistogram;
     this.checksumAccumulator = checksumAccumulator;
+    this.digestAssembler = digestAssembler;
     this.inputLength = 0;
   }
 
@@ -117,5 +128,28 @@ final class TlshAccumulator {
    */
   long inputLength() {
     return inputLength;
+  }
+
+  /**
+   * Creates an immutable digest from the state accumulated so far.
+   *
+   * <p>The method passes the exact input length, current rolling checksum, and a defensive copy of
+   * the 128 effective histogram counts to the digest assembler. It does not add features, change
+   * the checksum, reset the sliding window, or clear any counters. Calling it repeatedly without
+   * adding bytes therefore produces equal digests.
+   *
+   * <p>This method currently relies on component-level validation performed during assembly. For
+   * example, an empty stream cannot be length-encoded and a third quartile of zero cannot be used
+   * as the denominator of the ratio encoding. A later whole-stream eligibility policy will decide
+   * whether the input also meets the algorithm's minimum length and diversity requirements before
+   * finalization is exposed as public API.
+   *
+   * @return immutable snapshot of the current accumulated state in compact digest form
+   * @throws IllegalArgumentException when the current state cannot be represented by one of the
+   *     digest components
+   */
+  TlshDigest finish() {
+    return digestAssembler.assemble(
+        inputLength, checksumAccumulator.value(), featureHistogram.effectiveBucketCounts());
   }
 }
