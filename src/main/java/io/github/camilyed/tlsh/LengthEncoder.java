@@ -231,7 +231,8 @@ final class LengthEncoder {
     4_224_281_216L
   };
 
-  private static final long MAX_INPUT_LENGTH = RANGE_UPPER_BOUNDS[RANGE_UPPER_BOUNDS.length - 1];
+  /** Largest exact byte count represented by the final predefined length range. */
+  static final long MAX_INPUT_LENGTH = RANGE_UPPER_BOUNDS[RANGE_UPPER_BOUNDS.length - 1];
 
   /** Creates a stateless encoder for exact input lengths. */
   LengthEncoder() {}
