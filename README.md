@@ -62,8 +62,13 @@ rejects low-information inputs whose repeated local patterns would not produce a
 similarity digest.
 
 The streaming API currently accepts bytes and byte-array ranges. An `InputStream` convenience
-method is intentionally left for a later API-design step; callers can already read their stream in
-chunks and pass those chunks to `TlshHasher`.
+method reads the stream incrementally and leaves ownership of closing it with the caller:
+
+```java
+try (InputStream input = Files.newInputStream(path)) {
+  TlshDigest digest = Tlsh.hash(input);
+}
+```
 
 ## Compatibility
 

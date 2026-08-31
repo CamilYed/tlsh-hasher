@@ -1,9 +1,13 @@
 package io.github.camilyed.tlsh;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Objects;
 
 /** Convenient entry point for one-shot and incremental TLSH calculation. */
 public final class Tlsh {
+
+  private static final int STREAM_BUFFER_SIZE = 8_192;
 
   private Tlsh() {}
 
@@ -20,6 +24,31 @@ public final class Tlsh {
     Objects.requireNonNull(input, "input");
     final TlshHasher hasher = newHasher();
     hasher.update(input);
+    return hasher.finish();
+  }
+
+  /**
+   * Calculates a digest while reading bytes incrementally from a stream.
+   *
+   * <p>The complete input is never retained in memory. This method reads at most one 8 KiB chunk at
+   * a time and feeds it into the same streaming state used by {@link TlshHasher}. The caller owns
+   * the supplied stream: this method reads it to the end but deliberately does not close it.
+   *
+   * @param input stream containing all bytes to hash
+   * @return immutable digest
+   * @throws NullPointerException when {@code input} is {@code null}
+   * @throws IOException when bytes cannot be read from the stream
+   * @throws IllegalStateException when the input does not satisfy the standard length and feature
+   *     diversity requirements
+   */
+  public static TlshDigest hash(final InputStream input) throws IOException {
+    Objects.requireNonNull(input, "input");
+    final TlshHasher hasher = newHasher();
+    final byte[] buffer = new byte[STREAM_BUFFER_SIZE];
+    int bytesRead;
+    while ((bytesRead = input.read(buffer)) != -1) {
+      hasher.update(buffer, 0, bytesRead);
+    }
     return hasher.finish();
   }
 

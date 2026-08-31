@@ -1,7 +1,11 @@
 package io.github.camilyed.tlsh;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIOException;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import org.junit.jupiter.api.Test;
 
 final class TlshApiTest {
@@ -73,6 +77,35 @@ final class TlshApiTest {
     assertThat(secondSnapshot).isEqualTo(firstSnapshot);
   }
 
+  @Test
+  void shouldHashInputStreamWithoutClosingIt() throws IOException {
+    // given
+    final byte[] input = deterministicBytes(4_096);
+    final CloseTrackingInputStream inputStream = new CloseTrackingInputStream(input);
+
+    // when
+    final TlshDigest digest = Tlsh.hash(inputStream);
+
+    // then
+    assertThat(digest).isEqualTo(Tlsh.hash(input));
+    assertThat(inputStream.wasClosed()).isFalse();
+  }
+
+  @Test
+  void shouldPropagateInputStreamReadFailure() {
+    // given
+    final InputStream failingInput =
+        new InputStream() {
+          @Override
+          public int read() throws IOException {
+            throw new IOException("read failed");
+          }
+        };
+
+    // then
+    assertThatIOException().isThrownBy(() -> Tlsh.hash(failingInput)).withMessage("read failed");
+  }
+
   private static byte[] deterministicBytes(final int size) {
     final byte[] input = new byte[size];
     int state = 0x6D2B79F5 ^ size;
@@ -83,5 +116,24 @@ final class TlshApiTest {
       input[index] = (byte) state;
     }
     return input;
+  }
+
+  private static final class CloseTrackingInputStream extends ByteArrayInputStream {
+
+    private boolean closed;
+
+    private CloseTrackingInputStream(final byte[] input) {
+      super(input);
+    }
+
+    @Override
+    public void close() throws IOException {
+      closed = true;
+      super.close();
+    }
+
+    private boolean wasClosed() {
+      return closed;
+    }
   }
 }
