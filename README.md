@@ -229,6 +229,8 @@ JIT performance guarantee.
   release.
 - [Module boundaries](docs/architecture/0001-module-boundaries.md) records the reviewed public API,
   target modules, and the conditions for splitting the current implementation.
+- [Release readiness](docs/release-readiness.md) records local artifact checks and work deliberately
+  left before publication.
 - Issues and design discussions are welcome in the GitHub repository.
 
 This project is licensed under the [Apache License 2.0](LICENSE).

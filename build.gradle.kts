@@ -60,7 +60,7 @@ publishing {
 
                 scm {
                     url.set("https://github.com/CamilYed/tlsh-hasher")
-                    connection.set("scm:git:git://github.com/CamilYed/tlsh-hasher.git")
+                    connection.set("scm:git:https://github.com/CamilYed/tlsh-hasher.git")
                     developerConnection.set("scm:git:ssh://git@github.com:CamilYed/tlsh-hasher.git")
                 }
             }
@@ -112,7 +112,11 @@ configurations.configureEach {
 
 extensions.configure<SpotlessExtension> {
     java {
-        target("src/**/*.java", "tlsh-benchmarks/src/**/*.java")
+        target(
+            "src/**/*.java",
+            "tlsh-benchmarks/src/**/*.java",
+            "tlsh-module-smoke-test/src/**/*.java",
+        )
         googleJavaFormat()
         removeUnusedImports()
         trimTrailingWhitespace()
@@ -120,7 +124,11 @@ extensions.configure<SpotlessExtension> {
     }
 
     kotlinGradle {
-        target("*.gradle.kts", "tlsh-benchmarks/*.gradle.kts")
+        target(
+            "*.gradle.kts",
+            "tlsh-benchmarks/*.gradle.kts",
+            "tlsh-module-smoke-test/*.gradle.kts",
+        )
         ktlint()
         trimTrailingWhitespace()
         endWithNewline()
@@ -193,6 +201,7 @@ tasks.test {
 
 tasks.check {
     dependsOn(":tlsh-benchmarks:jmhClasses")
+    dependsOn(":tlsh-module-smoke-test:check")
     dependsOn(tasks.javadoc)
     dependsOn(tasks.spotlessCheck)
 }
