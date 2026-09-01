@@ -17,13 +17,19 @@ import picocli.CommandLine.Spec;
       "@|bold,cyan TLSH|@  similarity hashing for files",
       "@|faint Find related content even when the bytes are not identical.|@"
     },
-    description = "Hash files and folders, compare files, or compare canonical TLSH digests.",
+    description =
+        "Hash files and folders, find related files, or compare files and canonical digests.",
     synopsisHeading = "%n@|bold Usage:|@ ",
     commandListHeading = "%n@|bold Commands:|@%n",
     optionListHeading = "%n@|bold Options:|@%n",
     mixinStandardHelpOptions = true,
     versionProvider = TlshCli.VersionProvider.class,
-    subcommands = {HashCommand.class, CompareFilesCommand.class, DistanceCommand.class})
+    subcommands = {
+      HashCommand.class,
+      SimilarCommand.class,
+      CompareFilesCommand.class,
+      DistanceCommand.class
+    })
 public final class TlshCli implements Callable<Integer>, AutoCloseable {
 
   static final int SUCCESS = 0;
@@ -154,6 +160,18 @@ public final class TlshCli implements Callable<Integer>, AutoCloseable {
   /** Compares two files through the shared use case used by both CLI adapters. */
   FileComparison compareFiles(final FileComparisonRequest request) throws FileComparisonException {
     return new FileComparisonUseCase().execute(request);
+  }
+
+  /** Finds related files through the use case shared by command and interactive adapters. */
+  int findSimilar(final SimilarityScanRequest request) {
+    try {
+      final SimilarityScanResult result = new SimilarityScanUseCase().execute(request);
+      new SimilarityScanReporter(output, error, terminal).print(result);
+      return result.failures().isEmpty() ? SUCCESS : DATA_ERROR;
+    } catch (final SimilarityScanLimitException | IllegalArgumentException exception) {
+      error.println("tlsh: " + message(exception));
+      return DATA_ERROR;
+    }
   }
 
   /** Restores terminal state after an interactive session. */

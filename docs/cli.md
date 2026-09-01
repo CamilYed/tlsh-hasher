@@ -41,7 +41,8 @@ Starting the installed launcher without arguments opens this menu:
 1  Hash one file
 2  Hash a folder
 3  Compare two files
-4  Exit
+4  Find similar files
+5  Exit
 ```
 
 The menu remains open after each operation. Numeric choices are always accepted; the textual aliases
@@ -52,7 +53,8 @@ shown below are conveniences. An empty menu answer selects `1`.
 | `1` | Calculate and display one file's canonical `T1` digest. | `file`, `f`, or an empty answer |
 | `2` | Preview and hash the selected files in one folder. | `folder`, `directory` |
 | `3` | Hash two files and calculate their TLSH distance. | `compare`, `comparison`, `c` |
-| `4` | Close the guided session successfully. | `exit`, `quit`, `q` |
+| `4` | Find pairs within a selected maximum TLSH distance. | `similar`, `scan`, `find` |
+| `5` | Close the guided session successfully. | `exit`, `quit`, `q` |
 
 Choosing Exit returns process code `0`, even if an earlier operation reported a file failure. Each
 failed operation is reported when it happens; closing the persistent menu is a separate successful
@@ -127,6 +129,24 @@ it is a different distance mode and should not be mixed with length-aware scores
 The result displays both paths, both complete `T1` digests, the selected mode, and the numeric
 distance. The CLI deliberately does not label one universal score as "similar" or "different".
 
+### Find similar files
+
+This action selects a folder and traversal scope just like **Hash a folder**, then asks:
+
+```text
+Maximum TLSH distance [0]:
+Ignore input-length difference? [y/N]:
+```
+
+The maximum is inclusive: a value of `100` reports pairs whose distance is between `0` and `100`.
+Zero is the cautious default and means equal TLSH digests; it still does not prove byte-for-byte
+equality. The length question selects the same two distance modes as file comparison.
+
+Before reading the files, the preview shows both the number of files and the number of unique pairs.
+For example, 100 files require 4,950 comparisons. The interactive safety limit is 1,000,000 pairs.
+A larger selection is refused with an explanation; use the explicit command and deliberately raise
+its limit when that cost is acceptable.
+
 ## Explicit commands
 
 Run `tlsh --help` for the command list and `tlsh COMMAND --help` for generated option help.
@@ -171,6 +191,45 @@ without collecting presentation text:
 tlsh hash --progress=never samples/ > digests.txt
 ```
 
+### `tlsh similar`
+
+```text
+tlsh similar [OPTIONS] DIRECTORY
+```
+
+The command discovers regular files using the same hidden-file, recursion, and symbolic-directory
+rules as `hash`. It calculates each usable file's digest once, then compares every unique pair. A
+file is never compared with itself, and `(a, b)` is not repeated as `(b, a)`.
+
+| Option | Meaning |
+| --- | --- |
+| `-r`, `--recursive` | Include nested directories. Symbolic directories remain excluded. |
+| `--include-hidden` | Include hidden files and descend into hidden directories. |
+| `--max-distance=N` | Include scores from zero through `N`, inclusive. The default is `0`. |
+| `--ignore-length` | Remove the approximate input-length contribution from every score. |
+| `--max-comparisons=N` | Refuse more than `N` unique pairs. The default is `1,000,000`. |
+| `-h`, `--help` | Print command help and exit. |
+| `-V`, `--version` | Print the application version and exit. |
+
+Matches are sorted by distance, first path, and second path. Each standard-output record is:
+
+```text
+DISTANCE  FIRST_PATH  SECOND_PATH
+```
+
+The summary and failed-file details use standard error. One unreadable or TLSH-ineligible file does
+not discard matches among the remaining files, but it makes the command return code `1`.
+
+All-pairs work grows quadratically:
+
+```text
+comparisons = fileCount * (fileCount - 1) / 2
+```
+
+Thus 1,000 files require 499,500 comparisons, while 10,000 files require 49,995,000. The default
+limit prevents a broad directory from silently starting an unexpectedly expensive scan. Raising it
+changes only the guardrail, not the maximum distance used to select results.
+
 ### `tlsh compare`
 
 ```text
@@ -205,7 +264,7 @@ stored or received from another compatible TLSH implementation.
 
 | Channel | Content |
 | --- | --- |
-| Standard output | Digest records from `hash`, numeric scores from `compare` and `distance`, and guided presentation. |
+| Standard output | Digest records from `hash`, pair records from `similar`, numeric scores from `compare` and `distance`, and guided presentation. |
 | Standard error | Explicit-command progress, summaries, and diagnostics. |
 
 Colors are enabled only for a human terminal. Redirected output does not contain ANSI escape codes.
@@ -222,6 +281,5 @@ Colors are enabled only for a human terminal. Redirected output does not contain
 
 The CLI supports the standard 128-bucket, one-byte-checksum `T1` representation described in the
 main [compatibility documentation](../README.md#compatibility). It does not yet provide JSON output,
-parallel folder hashing, native executables, or directory-wide similar-file grouping. Similar-file
-search needs an explicit threshold and pair-count policy because a naive scan compares
-`n * (n - 1) / 2` file pairs.
+parallel folder hashing, native executables, or clustering that merges overlapping similar pairs
+into groups. The current `similar` command reports direct pairs within one explicit threshold.

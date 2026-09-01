@@ -28,6 +28,8 @@ All notable changes to this project are documented here. The format loosely foll
 - Skip hidden directory entries by default, report the skipped count, and add `--include-hidden`.
 - Document every CLI command, option, guided question, output channel, and exit code in a dedicated
   user guide, with expanded generated help text.
+- Find similar files in command and guided modes with deterministic pair ordering, inclusive
+  distance thresholds, single-pass hashing, partial-failure reporting, and an all-pairs cost limit.
 
 ### Changed
 
@@ -36,3 +38,5 @@ All notable changes to this project are documented here. The format loosely foll
 - Split the interactive CLI into focused menu, prompt, path, workflow, and reporting components.
 - Model guided menu entries as commands, select path completion as a strategy, and share hashing and
   file-comparison use cases between Picocli and JLine adapters.
+- Split the CLI integration suite by workflow and share only deterministic stream, input, and
+  terminal fixtures.

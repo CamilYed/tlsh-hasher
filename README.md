@@ -98,6 +98,8 @@ tlsh hash samples/
 tlsh hash --recursive --progress=always samples/
 tlsh hash --recursive --include-hidden samples/
 cat file.bin | tlsh hash -
+tlsh similar samples/
+tlsh similar --recursive --max-distance=100 samples/
 tlsh compare first.bin second.bin
 tlsh compare --ignore-length first.bin second.bin
 tlsh distance T1_FIRST_DIGEST T1_SECOND_DIGEST
@@ -109,7 +111,8 @@ is attached. Single-file and folder hashing are separate actions, so a file neve
 question about nested directories. Paths may be relative, home-relative with `~`, quoted, pasted,
 or dragged from a graphical file manager into the terminal. Path prompts also support line editing,
 command history, and filesystem suggestions with Tab. Folder mode previews the number and combined
-size of selected files before starting. After every operation the menu remains open until the user
+size of selected files before starting. Similar-file mode previews both the file count and the
+number of unique pairs before starting. After every operation the menu remains open until the user
 chooses Exit. When standard streams are redirected, no-argument execution prints help and exits
 instead of waiting for input. This keeps pipes, IDE builds, and CI jobs safe.
 
@@ -133,9 +136,16 @@ same calculation from two existing canonical digests. Both accept `--ignore-leng
 file comparison additionally displays the complete digests and reminds the user that the result is
 neither a percentage nor proof of byte-for-byte equality.
 
+`similar` hashes each discovered file once and compares every unique digest pair. It prints
+`DISTANCE  FIRST_PATH  SECOND_PATH`, ordered by distance and then path. The default maximum distance
+is zero; choose a threshold deliberately for a particular data set. Because an all-pairs scan grows
+as `n * (n - 1) / 2`, the command refuses more than 1,000,000 comparisons unless
+`--max-comparisons` is raised explicitly.
+
 Standard output remains a stable data stream: hash output contains the canonical digest, two
-spaces, and the input name, while compare and distance output contain only the decimal score. It can
-therefore be redirected or piped without collecting progress presentation. `--no-summary`
+spaces, and the input name; similar output contains a distance and two paths; and compare and
+distance output contain only the decimal score. It can therefore be redirected or piped without
+collecting progress presentation. `--no-summary`
 suppresses the folder or multi-file summary as well. The current application is a JVM distribution; the
 [CLI distribution decision](docs/architecture/0002-cli-distribution.md) describes the later,
 separately tested path to native executables for specific platforms.

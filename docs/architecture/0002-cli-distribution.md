@@ -17,6 +17,7 @@ tlsh
 tlsh hash PATH...
 tlsh hash [--recursive] [--include-hidden] [--progress=auto|always|never] PATH...
 tlsh hash -
+tlsh similar [--recursive] [--max-distance=N] [--max-comparisons=N] DIRECTORY
 tlsh compare [--ignore-length] FIRST_FILE SECOND_FILE
 tlsh distance FIRST SECOND
 tlsh distance --ignore-length FIRST SECOND
@@ -28,10 +29,10 @@ tlsh distance --ignore-length FIRST SECOND
 T1...  path-or-
 ```
 
-`compare` and `distance` emit only the decimal score. The former calculates both digests from files,
-while the latter accepts existing digest strings. Human explanations belong in guided presentation,
-help, and diagnostics rather than standard output, keeping successful output easy to pipe into
-other programs.
+`similar` emits a distance followed by two paths for every matching pair. `compare` and `distance`
+emit only the decimal score. The former calculates both digests from files, while the latter accepts
+existing digest strings. Human explanations belong in guided presentation, help, and diagnostics
+rather than standard output, keeping successful output easy to pipe into other programs.
 
 ## Exit codes
 
@@ -90,8 +91,15 @@ Guided menu entries implement a small Command contract containing their key, des
 and behavior. The shell renders and selects commands without knowing workflow-specific classes.
 Path completion uses a Strategy selected by the active prompt: file prompts offer files and
 directories, while folder prompts offer directories only. Picocli commands and JLine actions are
-input adapters over shared hashing and file-comparison use cases; guided hashing no longer invokes
-the Picocli parser recursively.
+input adapters over shared hashing, file-comparison, and similarity-scan use cases; guided workflows
+do not invoke the Picocli parser recursively.
+
+Similarity scanning hashes each usable file once, keeps only its small immutable digest, and then
+visits indices `i < j`. This avoids re-reading files and guarantees that self-pairs and reversed
+duplicates are absent. Results are ordered by distance and then path. The maximum distance is
+inclusive and defaults to zero. Because there are `n * (n - 1) / 2` pairs, discovery calculates the
+cost before file contents are read and refuses more than 1,000,000 comparisons unless an explicit
+command raises the guardrail.
 
 ## Distribution stages
 
@@ -132,8 +140,6 @@ Native executables are not ready for distribution merely because they compile. A
 
 ## Deferred commands
 
-Machine-readable JSON, threshold decisions, directory-wide similar-file search, and parallel
-hashing are intentionally deferred. Similar-file search requires an explicit score policy and cost
-limit because comparing every pair requires `n * (n - 1) / 2` distance calculations. These features
-should be added from concrete workflows rather than making the CLI large before its current
-contract is exercised.
+Machine-readable JSON, clustering of overlapping similar pairs, and parallel hashing are
+intentionally deferred. These features should be added from concrete workflows rather than making
+the CLI large before its current contract is exercised.

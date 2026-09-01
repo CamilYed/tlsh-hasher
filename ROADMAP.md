@@ -76,8 +76,8 @@ there are at least two real implementations to select between.
 - [x] Compare two encoded digests with or without the length contribution.
 - [x] Add a file-to-file command with a numeric standard-output contract and a descriptive guided
   presentation.
-- Specify threshold semantics, pair-count limits, and output ordering before adding a directory-wide
-  similar-file search; a naive scan performs `n * (n - 1) / 2` comparisons.
+- [x] Specify inclusive threshold semantics, pair-count limits, and deterministic output ordering,
+  then add bounded directory-wide similar-file search that hashes each file once.
 - Build JVM application archives and launch scripts before attempting native executables.
 - Add GraalVM Native Image only with tests and per-platform CI runners; do not assume that one
   runner can produce every operating-system and architecture combination.

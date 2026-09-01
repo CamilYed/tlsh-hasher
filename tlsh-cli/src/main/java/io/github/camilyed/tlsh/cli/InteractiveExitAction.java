@@ -13,7 +13,7 @@ final class InteractiveExitAction implements InteractiveAction {
 
   @Override
   public String key() {
-    return "4";
+    return "5";
   }
 
   @Override

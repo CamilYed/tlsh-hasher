@@ -18,6 +18,7 @@ final class InteractiveShell {
             new InteractiveFileHashAction(cli, prompter),
             new InteractiveFolderHashAction(cli, prompter),
             new InteractiveFileComparisonAction(cli, prompter),
+            new InteractiveSimilarityAction(cli, prompter),
             new InteractiveExitAction(prompter));
   }
 
