@@ -116,7 +116,12 @@ final class TlshCliTest {
     assertThat(output())
         .isEqualTo(Tlsh.hash(input).encoded() + "  " + validPath + System.lineSeparator());
     assertThat(error())
-        .contains("tlsh: " + missingPath + ": path does not exist")
+        .contains(
+            "Completed with 1 failed file",
+            "1 of 2 hashed",
+            "Failed files",
+            "✗ " + missingPath,
+            "path does not exist")
         .doesNotContain("Exception", "\tat ");
   }
 
@@ -291,7 +296,64 @@ final class TlshCliTest {
     // then
     assertThat(exitCode).isEqualTo(TlshCli.DATA_ERROR);
     assertThat(output()).isEmpty();
-    assertThat(error()).contains("use --recursive to include subdirectories", "0 files hashed");
+    assertThat(error())
+        .contains(
+            "Completed with 1 failed file",
+            "0 of 1 hashed",
+            "use --recursive to include subdirectories");
+  }
+
+  @Test
+  void shouldListFailedFilesAfterSuccessfulFolderResults(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final byte[] input = deterministicInput();
+    final Path validPath = Files.write(directory.resolve("valid.bin"), input);
+    final Path ineligiblePath = Files.write(directory.resolve("too-small.bin"), new byte[32]);
+
+    // when
+    final int exitCode = cli(new byte[0]).execute("hash", "--progress=never", directory.toString());
+
+    // then
+    assertThat(exitCode).isEqualTo(TlshCli.DATA_ERROR);
+    assertThat(output())
+        .isEqualTo(Tlsh.hash(input).encoded() + "  " + validPath + System.lineSeparator());
+    assertThat(error())
+        .contains(
+            "Completed with 1 failed file",
+            "1 of 2 hashed",
+            "Failed files",
+            "✗ " + ineligiblePath,
+            "input is 32 B; TLSH requires at least 256 B");
+  }
+
+  @Test
+  void shouldExitInteractiveShellSuccessfullyAfterAnEarlierHashFailure(
+      @TempDir final Path directory) throws IOException {
+    // given
+    final Path ineligiblePath = Files.write(directory.resolve("too-small.bin"), new byte[32]);
+    final ScriptedTerminal terminal = new ScriptedTerminal("1", ineligiblePath.toString(), "4");
+
+    // when
+    final int exitCode = interactiveCli(new byte[0], terminal).execute();
+
+    // then
+    assertThat(exitCode).isZero();
+    assertThat(output()).contains("Bye.");
+    assertThat(error())
+        .contains(
+            "Failed files",
+            "✗ " + ineligiblePath.toAbsolutePath(),
+            "input is 32 B; TLSH requires at least 256 B");
+  }
+
+  @Test
+  void shouldNormalizeHomePathAfterAnIdeReplacementCharacter() {
+    // when
+    final Path path = InteractivePathParser.parse("\uFFFD~");
+
+    // then
+    assertThat(path).isEqualTo(Path.of(System.getProperty("user.home")));
   }
 
   private TlshCli cli(final byte[] input) {

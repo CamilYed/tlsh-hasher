@@ -1,0 +1,105 @@
+package io.github.camilyed.tlsh.cli;
+
+import java.io.Console;
+import java.io.IOException;
+import org.jline.builtins.Completers.FileNameCompleter;
+import org.jline.reader.EndOfFileException;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.Reference;
+import org.jline.reader.UserInterruptException;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import picocli.CommandLine.Help.Ansi;
+
+/** Adapts JLine editing, history, and path completion to the small CLI terminal interface. */
+final class JLineCliTerminal implements CliTerminal {
+
+  private static final int MAXIMUM_LISTED_COMPLETIONS = 50;
+
+  private final Terminal terminal;
+  private final LineReader reader;
+
+  private JLineCliTerminal(final Terminal terminal, final LineReader reader) {
+    this.terminal = terminal;
+    this.reader = reader;
+  }
+
+  /**
+   * Opens the process terminal or returns the non-interactive adapter when streams are redirected.
+   *
+   * <p>The explicit {@link Console} check prevents CI, pipes, and Gradle's delegated process from
+   * becoming an accidental interactive session. JLine takes over only after the JVM confirms that a
+   * real console is attached.
+   */
+  static CliTerminal create() {
+    if (System.console() == null) {
+      return CliTerminal.nonInteractive();
+    }
+    try {
+      final Terminal terminal = TerminalBuilder.builder().system(true).build();
+      final LineReader reader =
+          LineReaderBuilder.builder()
+              .appName("tlsh")
+              .terminal(terminal)
+              .completer(new FileNameCompleter())
+              .option(LineReader.Option.CASE_INSENSITIVE, true)
+              .option(LineReader.Option.HISTORY_IGNORE_DUPS, true)
+              .option(LineReader.Option.MENU_COMPLETE, true)
+              .variable(LineReader.DISABLE_COMPLETION, true)
+              .variable(LineReader.LIST_MAX, MAXIMUM_LISTED_COMPLETIONS)
+              .build();
+      reader.getKeyMaps().get(LineReader.MAIN).bind(new Reference(LineReader.COMPLETE_WORD), "\t");
+      return new JLineCliTerminal(terminal, reader);
+    } catch (final IOException | RuntimeException exception) {
+      return CliTerminal.nonInteractive();
+    }
+  }
+
+  @Override
+  public boolean interactive() {
+    return true;
+  }
+
+  @Override
+  public Ansi ansi() {
+    return Ansi.ON;
+  }
+
+  @Override
+  public String readLine(final String prompt) {
+    reader.setVariable(LineReader.DISABLE_COMPLETION, true);
+    return read(prompt);
+  }
+
+  @Override
+  public String readPath(final String prompt) {
+    reader.setVariable(LineReader.DISABLE_COMPLETION, false);
+    try {
+      return read(prompt);
+    } finally {
+      reader.setVariable(LineReader.DISABLE_COMPLETION, true);
+    }
+  }
+
+  /** Converts Ctrl-C into cancellation and Ctrl-D into a request to end the session. */
+  private String read(final String prompt) {
+    try {
+      return reader.readLine(prompt);
+    } catch (final UserInterruptException exception) {
+      return "";
+    } catch (final EndOfFileException exception) {
+      return null;
+    }
+  }
+
+  /** Restores terminal attributes and releases the provider-specific terminal implementation. */
+  @Override
+  public void close() {
+    try {
+      terminal.close();
+    } catch (final IOException exception) {
+      // Closing the process terminal is best-effort; command results have already been produced.
+    }
+  }
+}

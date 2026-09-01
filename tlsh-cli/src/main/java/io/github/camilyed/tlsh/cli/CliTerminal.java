@@ -1,11 +1,9 @@
 package io.github.camilyed.tlsh.cli;
 
-import java.io.Console;
-import java.util.Objects;
 import picocli.CommandLine.Help.Ansi;
 
 /** Describes capabilities that differ between a human terminal and redirected process streams. */
-interface CliTerminal {
+interface CliTerminal extends AutoCloseable {
 
   /** Returns whether it is safe to ask the user questions and wait for answers. */
   boolean interactive();
@@ -13,13 +11,17 @@ interface CliTerminal {
   /** Selects Picocli's ANSI policy for help text and other terminal presentation. */
   Ansi ansi();
 
-  /** Displays a prompt and reads one answer from a human terminal. */
+  /** Displays a prompt and reads one answer with normal line editing but no path suggestions. */
   String readLine(String prompt);
 
-  /** Creates the terminal adapter used by the real command-line process. */
+  /** Displays a prompt with filesystem completion enabled for the Tab key. */
+  default String readPath(final String prompt) {
+    return readLine(prompt);
+  }
+
+  /** Creates the line-editing terminal used by the real command-line process. */
   static CliTerminal system() {
-    final Console console = System.console();
-    return console == null ? nonInteractive() : new SystemCliTerminal(console);
+    return JLineCliTerminal.create();
   }
 
   /** Creates a safe adapter for tests, pipes, IDE output windows, and background processes. */
@@ -27,30 +29,9 @@ interface CliTerminal {
     return NonInteractiveCliTerminal.INSTANCE;
   }
 
-  /** Uses {@link Console} so prompts do not accidentally consume bytes intended for hashing. */
-  final class SystemCliTerminal implements CliTerminal {
-
-    private final Console console;
-
-    private SystemCliTerminal(final Console console) {
-      this.console = Objects.requireNonNull(console, "console");
-    }
-
-    @Override
-    public boolean interactive() {
-      return true;
-    }
-
-    @Override
-    public Ansi ansi() {
-      return Ansi.AUTO;
-    }
-
-    @Override
-    public String readLine(final String prompt) {
-      return console.readLine("%s", prompt);
-    }
-  }
+  /** Allows callers to close every terminal implementation uniformly. */
+  @Override
+  default void close() {}
 
   /** Never blocks while no real console is attached. */
   enum NonInteractiveCliTerminal implements CliTerminal {

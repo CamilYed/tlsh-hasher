@@ -24,7 +24,7 @@ import picocli.CommandLine.Spec;
     mixinStandardHelpOptions = true,
     versionProvider = TlshCli.VersionProvider.class,
     subcommands = {HashCommand.class, DistanceCommand.class})
-public final class TlshCli implements Callable<Integer> {
+public final class TlshCli implements Callable<Integer>, AutoCloseable {
 
   static final int SUCCESS = 0;
   static final int DATA_ERROR = 1;
@@ -68,7 +68,10 @@ public final class TlshCli implements Callable<Integer> {
    * @param arguments command-line arguments
    */
   static void main(final String[] arguments) {
-    final int exitCode = new TlshCli().execute(arguments);
+    final int exitCode;
+    try (TlshCli cli = new TlshCli()) {
+      exitCode = cli.execute(arguments);
+    }
     if (exitCode != SUCCESS) {
       System.exit(exitCode);
     }
@@ -141,5 +144,11 @@ public final class TlshCli implements Callable<Integer> {
 
   CliTerminal terminal() {
     return terminal;
+  }
+
+  /** Restores terminal state after an interactive session. */
+  @Override
+  public void close() {
+    terminal.close();
   }
 }

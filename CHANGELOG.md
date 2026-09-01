@@ -22,8 +22,11 @@ All notable changes to this project are documented here. The format loosely foll
   batch summaries without changing script-oriented standard output.
 - Separate guided file and folder workflows, preview folder batches, normalize pasted paths, and
   keep the interactive session open across operations.
+- Add terminal colors, line editing, history, and Tab filesystem completion with JLine.
+- Collect per-file failures into a readable final batch report with successful and attempted counts.
 
 ### Changed
 
 - Remove per-window array allocations from the byte-processing hot path.
 - Make distance calculation allocation-free without exposing mutable digest state.
+- Split the interactive CLI into focused menu, prompt, path, workflow, and reporting components.

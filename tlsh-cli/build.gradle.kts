@@ -13,7 +13,11 @@ description = "Command-line application for calculating and comparing TLSH diges
 
 dependencies {
     implementation(project(":"))
+    implementation(libs.jline.builtins)
+    implementation(libs.jline.reader)
+    implementation(libs.jline.terminal)
     implementation(libs.picocli)
+    runtimeOnly(libs.jline.terminal.ffm)
     annotationProcessor(libs.picocli.codegen)
 
     testImplementation(platform(libs.junit.bom))
@@ -34,6 +38,7 @@ application {
     applicationName = "tlsh"
     mainModule = "io.github.camilyed.tlsh.cli"
     mainClass = "io.github.camilyed.tlsh.cli.TlshCli"
+    applicationDefaultJvmArgs = listOf("--enable-native-access=org.jline.terminal.ffm")
 }
 
 tasks.withType<JavaCompile>().configureEach {

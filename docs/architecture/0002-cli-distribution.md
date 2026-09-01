@@ -48,8 +48,10 @@ No-argument execution starts a persistent guided session only when a real termin
 Single-file hashing, folder hashing, and digest comparison are separate actions. A file workflow
 therefore never asks about directory recursion, while folder mode previews scope, file count, and
 combined size before starting. Paths accept quoting, the conventional `~` home prefix, and the
-backslash escaping produced when dragging a path into common macOS terminals. After an operation,
-the menu remains available until the user explicitly exits.
+backslash escaping produced when dragging a path into common macOS terminals. Path prompts provide
+normal line editing, history, and Tab completion for filesystem entries. After an operation, the
+menu remains available until the user explicitly exits. Closing this persistent menu is itself a
+successful action even when an earlier operation reported an ineligible file.
 
 The menu delegates to the same parsed commands as explicit invocation instead of maintaining a
 second hashing path. In a redirected process, no-argument execution prints help and exits so an
@@ -63,14 +65,20 @@ Successful digests and numeric distances remain on standard output. The live pro
 diagnostics, and batch summary use standard error. Consequently, presentation can evolve without
 changing data captured by a pipe. Progress defaults to `auto`, can be forced for an IDE with
 `always`, and can be disabled with `never`. Rendering is rate-limited and observes byte reads from
-the existing streaming API, so it does not retain complete files in memory.
+the existing streaming API, so it does not retain complete files in memory. When part of a batch
+fails, successful digest lines are still emitted and the final diagnostic repeats failed paths and
+reasons after the summary instead of leaving them hidden in the preceding output.
 
 ## CLI framework
 
 The module uses Picocli 4.7.7 and its annotation processor. Picocli provides subcommands, generated
 help, version handling, JPMS metadata, predictable parsing errors, and generated GraalVM reflection
-configuration. The library module itself remains dependency-free. Picocli's module and coordinates
-are documented in its [official API overview](https://picocli.info/apidocs-all/overview-summary.html).
+configuration. JLine 4.3.1 owns interactive terminal details: editable input, history, filesystem
+completion, terminal capability detection, and restoration of terminal state on exit. The Java FFM
+terminal provider is selected at runtime on the Java 25 baseline. The library module itself remains
+dependency-free. See Picocli's
+[official API overview](https://picocli.info/apidocs-all/overview-summary.html) and JLine's
+[LineReader documentation](https://jline.org/docs/line-reader/).
 
 ## Distribution stages
 

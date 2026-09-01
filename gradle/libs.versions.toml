@@ -3,6 +3,7 @@ assertj = "3.27.7"
 java = "25"
 jmh = "1.37"
 jmh-plugin = "0.7.3"
+jline = "4.3.1"
 junit = "6.1.2"
 picocli = "4.7.7"
 spotless = "8.7.0"
@@ -12,6 +13,10 @@ assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+jline-reader = { module = "org.jline:jline-reader", version.ref = "jline" }
+jline-builtins = { module = "org.jline:jline-builtins", version.ref = "jline" }
+jline-terminal = { module = "org.jline:jline-terminal", version.ref = "jline" }
+jline-terminal-ffm = { module = "org.jline:jline-terminal-ffm", version.ref = "jline" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
 picocli-codegen = { module = "info.picocli:picocli-codegen", version.ref = "picocli" }
 

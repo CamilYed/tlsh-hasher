@@ -5,6 +5,7 @@ import io.github.camilyed.tlsh.TlshDigest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
@@ -55,7 +56,7 @@ final class HashCommand implements Callable<Integer> {
     final long startedAt = System.nanoTime();
     final HashInputDiscovery.Result discovery =
         new HashInputDiscovery().discover(inputNames, recursive);
-    printDiscoveryFailures(discovery.failures());
+    final List<HashFailure> failures = discoveryFailures(discovery.failures());
 
     final long expectedBytes = expectedBytes(discovery.inputs());
     final HashProgress progress =
@@ -67,7 +68,6 @@ final class HashCommand implements Callable<Integer> {
             discovery.inputs().size());
 
     int successfulFiles = 0;
-    int hashingFailures = 0;
     for (int index = 0; index < discovery.inputs().size(); index++) {
       final HashInput input = discovery.inputs().get(index);
       progress.startFile(index + 1, input.displayName());
@@ -79,18 +79,20 @@ final class HashCommand implements Callable<Integer> {
         successfulFiles++;
       } catch (final IOException | IllegalArgumentException | IllegalStateException exception) {
         progress.clearLine();
-        printFailure(input.displayName(), exception);
-        hashingFailures++;
+        failures.add(new HashFailure(input.displayName(), failureDetail(input, exception)));
       }
     }
     progress.close();
 
-    final int failureCount = discovery.failures().size() + hashingFailures;
-    if (shouldPrintSummary(discovery, failureCount)) {
-      printSummary(
-          successfulFiles, failureCount, progress.processedBytes(), System.nanoTime() - startedAt);
-    }
-    return failureCount == 0 ? TlshCli.SUCCESS : TlshCli.DATA_ERROR;
+    final HashBatchSummary summary =
+        new HashBatchSummary(
+            successfulFiles,
+            List.copyOf(failures),
+            progress.processedBytes(),
+            System.nanoTime() - startedAt);
+    new HashBatchReporter(parent.error(), parent.terminal())
+        .print(summary, shouldPrintSummary(discovery, failures.size()));
+    return failures.isEmpty() ? TlshCli.SUCCESS : TlshCli.DATA_ERROR;
   }
 
   /** Opens files locally while leaving ownership of process standard input with the caller. */
@@ -126,16 +128,14 @@ final class HashCommand implements Callable<Integer> {
     return inputNames.stream().filter("-"::equals).count();
   }
 
-  /** Prints path-discovery failures using the same concise diagnostics as hashing failures. */
-  private void printDiscoveryFailures(final List<HashInputDiscovery.Failure> failures) {
-    for (final HashInputDiscovery.Failure failure : failures) {
-      parent.error().println("tlsh: " + failure.inputName() + ": " + failure.detail());
+  /** Converts path-discovery failures into the common final-report representation. */
+  private static List<HashFailure> discoveryFailures(
+      final List<HashInputDiscovery.Failure> discoveryFailures) {
+    final List<HashFailure> failures = new ArrayList<>(discoveryFailures.size());
+    for (final HashInputDiscovery.Failure failure : discoveryFailures) {
+      failures.add(new HashFailure(failure.inputName(), failure.detail()));
     }
-  }
-
-  /** Prints an expected user-facing failure without a Java exception class or stack trace. */
-  private void printFailure(final String inputName, final Exception exception) {
-    parent.error().println("tlsh: " + inputName + ": " + TlshCli.message(exception));
+    return failures;
   }
 
   /** Keeps single-file script output minimal while summarizing genuinely batch-oriented work. */
@@ -145,33 +145,16 @@ final class HashCommand implements Callable<Integer> {
         && (discovery.containedDirectory() || discovery.inputs().size() > 1 || failureCount > 0);
   }
 
-  /** Prints a compact batch outcome to stderr so stdout remains a digest data stream. */
-  private void printSummary(
-      final int successfulFiles,
-      final int failedFiles,
-      final long processedBytes,
-      final long elapsedNanoseconds) {
-    final String result =
-        failedFiles == 0
-            ? parent.terminal().ansi().string("@|green ✓|@")
-            : parent.terminal().ansi().string("@|yellow !|@");
-    final String failures = failedFiles == 0 ? "" : " · " + failedFiles + " failed";
-    parent
-        .error()
-        .println(
-            result
-                + " "
-                + successfulFiles
-                + pluralize(successfulFiles, " file", " files")
-                + " hashed · "
-                + HumanUnits.bytes(processedBytes)
-                + " · "
-                + HumanUnits.duration(elapsedNanoseconds)
-                + failures);
-  }
-
-  /** Chooses a singular or plural noun without introducing a formatting dependency. */
-  private static String pluralize(final int count, final String singular, final String plural) {
-    return count == 1 ? singular : plural;
+  /** Gives eligibility failures more useful context than the core API's generic exception text. */
+  private static String failureDetail(final HashInput input, final Exception exception) {
+    if (exception instanceof IllegalStateException) {
+      if (input.expectedBytes() >= 0L && input.expectedBytes() < 256L) {
+        return "input is "
+            + HumanUnits.bytes(input.expectedBytes())
+            + "; TLSH requires at least 256 B";
+      }
+      return "content does not have enough feature diversity for a TLSH digest";
+    }
+    return TlshCli.message(exception);
   }
 }

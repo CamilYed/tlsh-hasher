@@ -102,16 +102,23 @@ tlsh distance --ignore-length T1_FIRST_DIGEST T1_SECOND_DIGEST
 Running an installed `tlsh` launcher without arguments opens a guided session when a human terminal
 is attached. Single-file and folder hashing are separate actions, so a file never triggers a
 question about nested directories. Paths may be relative, home-relative with `~`, quoted, pasted,
-or dragged from a graphical file manager into the terminal. Folder mode previews the number and
-combined size of selected files before starting. After every operation the menu remains open until
-the user chooses Exit. When standard streams are redirected, no-argument execution prints help and
-exits instead of waiting for input. This keeps pipes, IDE builds, and CI jobs safe.
+or dragged from a graphical file manager into the terminal. Path prompts also support line editing,
+command history, and filesystem suggestions with Tab. Folder mode previews the number and combined
+size of selected files before starting. After every operation the menu remains open until the user
+chooses Exit. When standard streams are redirected, no-argument execution prints help and exits
+instead of waiting for input. This keeps pipes, IDE builds, and CI jobs safe.
 
 `hash` accepts files and directories. A directory includes its immediate regular files;
 `--recursive` also includes nested directories. Directory files are sorted for reproducible output,
 and overlapping arguments are de-duplicated. `--progress=auto` displays one live aggregate progress
 line only in a terminal. Use `--progress=always` for an IDE output window or `--progress=never` for
 fully quiet batch execution. Progress and batch summaries use standard error.
+
+If one item fails, hashing continues for the remaining files. The final summary gives the successful
+and attempted counts, then repeats failed paths and their reasons in a separate colored section so a
+failure cannot disappear among many successful digest lines. An explicitly closed guided session
+still exits successfully; an explicit `tlsh hash ...` invocation returns exit code `1` when any
+requested item fails.
 
 Standard output remains a stable data stream: hash output contains the canonical digest, two
 spaces, and the input name, while distance output contains only the decimal score. It can therefore
