@@ -20,6 +20,7 @@ buckets and a one-byte checksum.
 - [Status](#status)
 - [Requirements](#requirements)
 - [Usage](#usage)
+- [Command-line application](#command-line-application)
 - [How it works](#how-it-works)
 - [Input eligibility](#input-eligibility)
 - [Compatibility](#compatibility)
@@ -76,6 +77,30 @@ int distanceWithoutLength = first.distanceToIgnoringLength(second);
 The difference is a nonnegative score, not a percentage or probability. Smaller values indicate
 greater similarity. Interpretation depends on the data and use case, so this library does not label
 one universal score as "similar" or "different."
+
+## Command-line application
+
+The non-published `tlsh-cli` module provides a named JPMS command-line application. Build its local
+JVM distribution with:
+
+```shell
+./gradlew :tlsh-cli:installDist
+```
+
+The generated launcher is `tlsh-cli/build/install/tlsh/bin/tlsh` on Unix-like systems and
+`tlsh.bat` in the same directory on Windows.
+
+```shell
+tlsh hash file.bin another-file.bin
+cat file.bin | tlsh hash -
+tlsh distance T1_FIRST_DIGEST T1_SECOND_DIGEST
+tlsh distance --ignore-length T1_FIRST_DIGEST T1_SECOND_DIGEST
+```
+
+Hash output contains the canonical digest, two spaces, and the input name. Distance output contains
+only the decimal score so it can be consumed by scripts. The current application is a JVM
+distribution; the [CLI distribution decision](docs/architecture/0002-cli-distribution.md) describes
+the later, separately tested path to native executables for specific platforms.
 
 ## How it works
 
@@ -229,6 +254,8 @@ JIT performance guarantee.
   release.
 - [Module boundaries](docs/architecture/0001-module-boundaries.md) records the reviewed public API,
   target modules, and the conditions for splitting the current implementation.
+- [CLI distribution](docs/architecture/0002-cli-distribution.md) defines the command contract and
+  staged path from a JVM application to platform-native executables.
 - [Release readiness](docs/release-readiness.md) records local artifact checks and work deliberately
   left before publication.
 - Issues and design discussions are welcome in the GitHub repository.

@@ -68,3 +68,14 @@ there are at least two real implementations to select between.
 - Review generated JAR, sources, Javadoc, POM, signatures, and module descriptor.
 - Publish only after the home-lab status and known limitations are accurately documented.
 - Create the Git tag and GitHub Release only after the matching artifact is actually available.
+
+## 5. Command-line application
+
+- [x] Add a separate named `tlsh-cli` module with generated help and version options.
+- [x] Hash one or more files or standard input with stable line-oriented output.
+- [x] Compare two encoded digests with or without the length contribution.
+- Add a file-to-file convenience command only after its output contract is specified.
+- Build JVM application archives and launch scripts before attempting native executables.
+- Add GraalVM Native Image only with tests and per-platform CI runners; do not assume that one
+  runner can produce every operating-system and architecture combination.
+- Add checksums, provenance, signing, and platform-specific packaging before distributing binaries.

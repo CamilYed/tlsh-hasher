@@ -115,6 +115,7 @@ extensions.configure<SpotlessExtension> {
         target(
             "src/**/*.java",
             "tlsh-benchmarks/src/**/*.java",
+            "tlsh-cli/src/**/*.java",
             "tlsh-module-smoke-test/src/**/*.java",
         )
         googleJavaFormat()
@@ -127,6 +128,7 @@ extensions.configure<SpotlessExtension> {
         target(
             "*.gradle.kts",
             "tlsh-benchmarks/*.gradle.kts",
+            "tlsh-cli/*.gradle.kts",
             "tlsh-module-smoke-test/*.gradle.kts",
         )
         ktlint()
@@ -154,6 +156,7 @@ extensions.configure<SpotlessExtension> {
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.release = libs.versions.java.map(String::toInt)
+    options.javaModuleVersion.set(provider { project.version.toString() })
     options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
 }
 
@@ -201,6 +204,7 @@ tasks.test {
 
 tasks.check {
     dependsOn(":tlsh-benchmarks:jmhClasses")
+    dependsOn(":tlsh-cli:check")
     dependsOn(":tlsh-module-smoke-test:check")
     dependsOn(tasks.javadoc)
     dependsOn(tasks.spotlessCheck)

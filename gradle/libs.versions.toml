@@ -4,6 +4,7 @@ java = "25"
 jmh = "1.37"
 jmh-plugin = "0.7.3"
 junit = "6.1.2"
+picocli = "4.7.7"
 spotless = "8.7.0"
 
 [libraries]
@@ -11,6 +12,8 @@ assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
+picocli-codegen = { module = "info.picocli:picocli-codegen", version.ref = "picocli" }
 
 [plugins]
 jmh = { id = "me.champeau.jmh", version.ref = "jmh-plugin" }

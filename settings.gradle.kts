@@ -16,4 +16,5 @@ dependencyResolutionManagement {
 rootProject.name = "tlsh-hasher"
 
 include("tlsh-benchmarks")
+include("tlsh-cli")
 include("tlsh-module-smoke-test")

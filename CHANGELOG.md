@@ -17,6 +17,7 @@ All notable changes to this project are documented here. The format loosely foll
 - Add isolated JMH benchmarks for digest parsing and distance calculation.
 - Add a named `distanceToIgnoringLength` API and an external-package consumer smoke test.
 - Verify the public API from a separate named JPMS module during every build.
+- Add a non-published CLI module for hashing files or standard input and comparing encoded digests.
 
 ### Changed
 
