@@ -12,8 +12,7 @@ import java.util.Locale;
 import java.util.Optional;
 
 /** Guides a human through repeated operations when {@code tlsh} starts without arguments. */
-final class
-InteractiveShell {
+final class InteractiveShell {
 
   private static final String BACK_HINT = "Leave empty to return to the menu.";
 
