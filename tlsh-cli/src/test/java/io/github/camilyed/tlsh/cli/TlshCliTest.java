@@ -21,6 +21,8 @@ import picocli.CommandLine;
 
 final class TlshCliTest {
 
+  private static final String USER_INTERRUPT = "<CTRL-C>";
+
   private static final String FIRST_DIGEST =
       "T10DD02B90854AAA04F465B9B15D0B64FF6F34600FA39C06A138C13534752B9A6517C570";
   private static final String SECOND_DIGEST =
@@ -54,6 +56,51 @@ final class TlshCliTest {
     // then
     assertThat(exitCode).isZero();
     assertThat(output()).containsPattern("tlsh (0\\.1\\.0-SNAPSHOT|development)");
+    assertThat(error()).isEmpty();
+  }
+
+  @Test
+  void shouldExplainHashDiscoveryAndPresentationOptions() {
+    // when
+    final int exitCode = cli(new byte[0]).execute("hash", "--help");
+
+    // then
+    assertThat(exitCode).isZero();
+    assertThat(normalizedOutput())
+        .contains(
+            "Calculate T1 digests",
+            "skips hidden entries",
+            "explicitly named hidden file is always processed",
+            "ALWAYS forces progress",
+            "failure details are still printed");
+    assertThat(error()).isEmpty();
+  }
+
+  @Test
+  void shouldExplainTheDifferenceBetweenFileAndDigestComparison() {
+    // when
+    final int compareExitCode = cli(new byte[0]).execute("compare", "--help");
+
+    // then
+    assertThat(compareExitCode).isZero();
+    assertThat(normalizedOutput())
+        .contains(
+            "Hash two regular files",
+            "score is not a percentage",
+            "without the approximate input-length contribution");
+
+    createOutputStreams();
+
+    // when
+    final int distanceExitCode = cli(new byte[0]).execute("distance", "--help");
+
+    // then
+    assertThat(distanceExitCode).isZero();
+    assertThat(normalizedOutput())
+        .contains(
+            "two existing canonical T1 digests",
+            "does not open files",
+            "use compare when file paths are available");
     assertThat(error()).isEmpty();
   }
 
@@ -431,6 +478,25 @@ final class TlshCliTest {
   }
 
   @Test
+  void shouldCancelInteractiveHashInsteadOfAcceptingDefaultAfterCtrlC(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final Path inputPath = Files.write(directory.resolve("input.bin"), deterministicInput());
+    final ScriptedTerminal terminal =
+        new ScriptedTerminal("2", directory.toString(), "1", USER_INTERRUPT, "4");
+
+    // when
+    final int exitCode = interactiveCli(new byte[0], terminal).execute();
+
+    // then
+    assertThat(exitCode).isZero();
+    assertThat(output())
+        .contains("Found 1 file", "Cancelled.", "Bye.")
+        .doesNotContain(inputPath.toString(), Tlsh.hash(deterministicInput()).encoded());
+    assertThat(error()).isEmpty();
+  }
+
+  @Test
   void shouldCompareTwoFilesInteractively(@TempDir final Path directory) throws IOException {
     // given
     final byte[] firstInput = deterministicInput();
@@ -559,6 +625,10 @@ final class TlshCliTest {
     return outputBytes.toString(StandardCharsets.UTF_8);
   }
 
+  private String normalizedOutput() {
+    return output().replaceAll("\\s+", " ");
+  }
+
   private String error() {
     return errorBytes.toString(StandardCharsets.UTF_8);
   }
@@ -596,7 +666,11 @@ final class TlshCliTest {
     @Override
     public String readLine(final String prompt) {
       prompts.add(prompt);
-      return answers.remove();
+      final String answer = answers.remove();
+      if (USER_INTERRUPT.equals(answer)) {
+        throw new InteractiveCancellationException();
+      }
+      return answer;
     }
 
     private List<String> prompts() {

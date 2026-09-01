@@ -25,22 +25,26 @@ final class InteractiveShell {
   int run() {
     printWelcome();
     while (true) {
-      printMenu();
-      final String answer = prompter.answer("Choose an action [1]: ");
-      if (answer == null) {
-        return closeFromEndOfInput();
-      }
-
-      final String selection = answer.strip().toLowerCase(Locale.ROOT);
-      final Optional<InteractiveAction> selectedAction = findAction(selection);
-      if (selectedAction.isEmpty()) {
-        prompter.error("Unknown choice. Select one of the displayed actions.");
-      } else {
-        final InteractiveAction action = selectedAction.orElseThrow();
-        action.execute();
-        if (action.closesShell()) {
-          return TlshCli.SUCCESS;
+      try {
+        printMenu();
+        final String answer = prompter.answer("Choose an action [1]: ");
+        if (answer == null) {
+          return closeFromEndOfInput();
         }
+
+        final String selection = answer.strip().toLowerCase(Locale.ROOT);
+        final Optional<InteractiveAction> selectedAction = findAction(selection);
+        if (selectedAction.isEmpty()) {
+          prompter.error("Unknown choice. Select one of the displayed actions.");
+        } else {
+          final InteractiveAction action = selectedAction.orElseThrow();
+          action.execute();
+          if (action.closesShell()) {
+            return TlshCli.SUCCESS;
+          }
+        }
+      } catch (final InteractiveCancellationException exception) {
+        prompter.line(prompter.style().muted("Cancelled."));
       }
       prompter.blankLine();
     }

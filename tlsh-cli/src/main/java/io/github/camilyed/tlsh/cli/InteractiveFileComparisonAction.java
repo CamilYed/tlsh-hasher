@@ -30,6 +30,7 @@ final class InteractiveFileComparisonAction implements InteractiveAction {
     if (second.isEmpty()) {
       return;
     }
+    prompter.hint("TLSH normally includes an approximate input-length contribution in the score.");
     final boolean ignoreLength =
         prompter.yes(prompter.answer("Ignore input-length difference? [y/N]: "));
 

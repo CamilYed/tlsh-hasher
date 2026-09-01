@@ -17,7 +17,7 @@ import picocli.CommandLine.Spec;
       "@|bold,cyan TLSH|@  similarity hashing for files",
       "@|faint Find related content even when the bytes are not identical.|@"
     },
-    description = "Hash files and folders or compare canonical TLSH digests.",
+    description = "Hash files and folders, compare files, or compare canonical TLSH digests.",
     synopsisHeading = "%n@|bold Usage:|@ ",
     commandListHeading = "%n@|bold Commands:|@%n",
     optionListHeading = "%n@|bold Options:|@%n",

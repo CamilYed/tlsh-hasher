@@ -26,6 +26,8 @@ All notable changes to this project are documented here. The format loosely foll
 - Collect per-file failures into a readable final batch report with successful and attempted counts.
 - Compare two files directly in command and guided modes while retaining numeric script output.
 - Skip hidden directory entries by default, report the skipped count, and add `--include-hidden`.
+- Document every CLI command, option, guided question, output channel, and exit code in a dedicated
+  user guide, with expanded generated help text.
 
 ### Changed
 

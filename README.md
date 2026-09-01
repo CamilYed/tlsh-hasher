@@ -21,6 +21,7 @@ buckets and a one-byte checksum.
 - [Requirements](#requirements)
 - [Usage](#usage)
 - [Command-line application](#command-line-application)
+- [Complete CLI guide](docs/cli.md)
 - [How it works](#how-it-works)
 - [Input eligibility](#input-eligibility)
 - [Compatibility](#compatibility)
@@ -88,7 +89,8 @@ JVM distribution with:
 ```
 
 The generated launcher is `tlsh-cli/build/install/tlsh/bin/tlsh` on Unix-like systems and
-`tlsh.bat` in the same directory on Windows.
+`tlsh.bat` in the same directory on Windows. The [complete CLI guide](docs/cli.md) explains every
+command, option, interactive question, output channel, and exit code.
 
 ```shell
 tlsh hash file.bin another-file.bin
@@ -132,9 +134,9 @@ file comparison additionally displays the complete digests and reminds the user 
 neither a percentage nor proof of byte-for-byte equality.
 
 Standard output remains a stable data stream: hash output contains the canonical digest, two
-spaces, and the input name, while distance output contains only the decimal score. It can therefore
-be redirected or piped without collecting progress presentation. `--no-summary` suppresses the
-folder or multi-file summary as well. The current application is a JVM distribution; the
+spaces, and the input name, while compare and distance output contain only the decimal score. It can
+therefore be redirected or piped without collecting progress presentation. `--no-summary`
+suppresses the folder or multi-file summary as well. The current application is a JVM distribution; the
 [CLI distribution decision](docs/architecture/0002-cli-distribution.md) describes the later,
 separately tested path to native executables for specific platforms.
 

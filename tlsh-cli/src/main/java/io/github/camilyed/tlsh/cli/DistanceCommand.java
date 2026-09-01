@@ -10,7 +10,10 @@ import picocli.CommandLine.ParentCommand;
 /** Calculates the TLSH difference score between two canonical digest strings. */
 @Command(
     name = "distance",
-    description = "Compare two canonical T1 digests.",
+    description = {
+      "Print the difference score between two existing canonical T1 digests.",
+      "This command does not open files; use compare when file paths are available."
+    },
     mixinStandardHelpOptions = true)
 final class DistanceCommand implements Callable<Integer> {
 
@@ -18,7 +21,7 @@ final class DistanceCommand implements Callable<Integer> {
 
   @Option(
       names = "--ignore-length",
-      description = "Do not include the encoded input-length difference.")
+      description = "Compare digest features without the approximate input-length contribution.")
   private boolean ignoreLength;
 
   @Parameters(index = "0", paramLabel = "FIRST", description = "First canonical T1 digest.")

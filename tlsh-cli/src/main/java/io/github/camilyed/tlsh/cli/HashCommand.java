@@ -10,7 +10,10 @@ import picocli.CommandLine.ParentCommand;
 /** Calculates canonical TLSH digests for files, directories, or standard input. */
 @Command(
     name = "hash",
-    description = "Hash files or folders. Use '-' to read standard input.",
+    description = {
+      "Calculate T1 digests for files or folders. Use '-' to read standard input.",
+      "Directory discovery skips hidden entries unless --include-hidden is selected."
+    },
     mixinStandardHelpOptions = true)
 final class HashCommand implements Callable<Integer> {
 
@@ -24,24 +27,30 @@ final class HashCommand implements Callable<Integer> {
 
   @Option(
       names = {"-r", "--recursive"},
-      description = "Include files in all nested subdirectories.")
+      description = "Include nested directories without following symbolic directories.")
   private boolean recursive;
 
   @Option(
       names = "--include-hidden",
-      description = "Include hidden files and descend into hidden directories.")
+      description = {
+        "Include hidden files found in directories and descend into hidden directories.",
+        "An explicitly named hidden file is always processed."
+      })
   private boolean includeHidden;
 
   @Option(
       names = "--progress",
       defaultValue = "AUTO",
       paramLabel = "MODE",
-      description = "Progress display: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}).")
+      description = {
+        "Progress display: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}).",
+        "AUTO requires a terminal; ALWAYS forces progress; NEVER disables it."
+      })
   private ProgressMode progressMode;
 
   @Option(
       names = "--no-summary",
-      description = "Do not print the final folder or multi-file summary.")
+      description = "Hide the normal batch summary; failure details are still printed.")
   private boolean noSummary;
 
   /** Maps parsed command options onto the shared hashing use case. */

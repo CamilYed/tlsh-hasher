@@ -94,12 +94,12 @@ final class JLineCliTerminal implements CliTerminal {
     }
   }
 
-  /** Converts Ctrl-C into cancellation and Ctrl-D into a request to end the session. */
+  /** Distinguishes Ctrl-C cancellation from Ctrl-D end-of-input for the guided shell. */
   private String read(final String prompt) {
     try {
       return reader.readLine(prompt);
     } catch (final UserInterruptException exception) {
-      return "";
+      throw new InteractiveCancellationException();
     } catch (final EndOfFileException exception) {
       return null;
     }

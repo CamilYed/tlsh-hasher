@@ -10,7 +10,10 @@ import picocli.CommandLine.ParentCommand;
 /** Calculates a TLSH difference score directly from two regular files. */
 @Command(
     name = "compare",
-    description = "Hash and compare two files.",
+    description = {
+      "Hash two regular files and print their TLSH difference score.",
+      "Smaller scores indicate greater similarity; the score is not a percentage."
+    },
     mixinStandardHelpOptions = true)
 final class CompareFilesCommand implements Callable<Integer> {
 
@@ -18,7 +21,7 @@ final class CompareFilesCommand implements Callable<Integer> {
 
   @Option(
       names = "--ignore-length",
-      description = "Do not include the encoded input-length difference.")
+      description = "Compare digest features without the approximate input-length contribution.")
   private boolean ignoreLength;
 
   @Parameters(index = "0", paramLabel = "FIRST", description = "First regular file.")
