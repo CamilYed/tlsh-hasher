@@ -1,28 +1,29 @@
 package io.github.camilyed.tlsh.cli;
 
-import io.github.camilyed.tlsh.Tlsh;
-import io.github.camilyed.tlsh.TlshDigest;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.lang.module.ModuleDescriptor;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.List;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
-import picocli.CommandLine.ParentCommand;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Spec;
 
-/** Entry point for the TLSH command-line application. */
+/** Entry point for the interactive and script-friendly TLSH command-line application. */
 @Command(
     name = "tlsh",
-    description = "Calculate and compare TLSH similarity digests.",
+    header = {
+      "@|bold,cyan TLSH|@  similarity hashing for files",
+      "@|faint Find related content even when the bytes are not identical.|@"
+    },
+    description = "Hash files and folders or compare canonical TLSH digests.",
+    synopsisHeading = "%n@|bold Usage:|@ ",
+    commandListHeading = "%n@|bold Commands:|@%n",
+    optionListHeading = "%n@|bold Options:|@%n",
     mixinStandardHelpOptions = true,
     versionProvider = TlshCli.VersionProvider.class,
-    subcommands = {TlshCli.HashCommand.class, TlshCli.DistanceCommand.class})
+    subcommands = {HashCommand.class, DistanceCommand.class})
 public final class TlshCli implements Callable<Integer> {
 
   static final int SUCCESS = 0;
@@ -31,20 +32,34 @@ public final class TlshCli implements Callable<Integer> {
   private final InputStream input;
   private final PrintWriter output;
   private final PrintWriter error;
+  private final CliTerminal terminal;
+
+  @Spec private CommandSpec commandSpec;
 
   /** Creates a CLI connected to the process standard streams. */
   public TlshCli() {
     this(
         System.in,
         new PrintWriter(System.out, true, StandardCharsets.UTF_8),
-        new PrintWriter(System.err, true, StandardCharsets.UTF_8));
+        new PrintWriter(System.err, true, StandardCharsets.UTF_8),
+        CliTerminal.system());
   }
 
   /** Creates a CLI with replaceable streams for deterministic tests. */
   TlshCli(final InputStream input, final PrintWriter output, final PrintWriter error) {
+    this(input, output, error, CliTerminal.nonInteractive());
+  }
+
+  /** Creates a CLI with replaceable streams and terminal behavior for deterministic tests. */
+  TlshCli(
+      final InputStream input,
+      final PrintWriter output,
+      final PrintWriter error,
+      final CliTerminal terminal) {
     this.input = input;
     this.output = output;
     this.error = error;
+    this.terminal = terminal;
   }
 
   /**
@@ -52,7 +67,7 @@ public final class TlshCli implements Callable<Integer> {
    *
    * @param arguments command-line arguments
    */
-  public static void main(final String[] arguments) {
+  static void main(final String[] arguments) {
     final int exitCode = new TlshCli().execute(arguments);
     if (exitCode != SUCCESS) {
       System.exit(exitCode);
@@ -69,95 +84,19 @@ public final class TlshCli implements Callable<Integer> {
     final CommandLine commandLine = new CommandLine(this);
     commandLine.setOut(output);
     commandLine.setErr(error);
+    commandLine.setColorScheme(CommandLine.Help.defaultColorScheme(terminal.ansi()));
+    commandLine.setCaseInsensitiveEnumValuesAllowed(true);
     return commandLine.execute(arguments);
   }
 
-  /** Prints root help when no subcommand was supplied. */
+  /** Starts the guided terminal when possible and otherwise prints nonblocking root help. */
   @Override
   public Integer call() {
-    new CommandLine(this).usage(output);
+    if (terminal.interactive()) {
+      return new InteractiveShell(this, terminal, output).run();
+    }
+    commandSpec.commandLine().usage(output);
     return SUCCESS;
-  }
-
-  /** Calculates canonical digests for files or standard input. */
-  @Command(
-      name = "hash",
-      description = "Hash files. Use '-' to read standard input.",
-      mixinStandardHelpOptions = true)
-  static final class HashCommand implements Callable<Integer> {
-
-    @ParentCommand private TlshCli parent;
-
-    @Parameters(arity = "1..*", paramLabel = "FILE", description = "File path or '-' for stdin.")
-    private List<String> inputs;
-
-    /** Hashes every input, continuing after individual failures. */
-    @Override
-    public Integer call() {
-      if (standardInputCount() > 1) {
-        parent.error.println("tlsh: standard input '-' may be specified only once");
-        return DATA_ERROR;
-      }
-
-      int exitCode = SUCCESS;
-      for (final String inputName : inputs) {
-        try {
-          final TlshDigest digest = hash(inputName);
-          parent.output.println(digest.encoded() + "  " + inputName);
-        } catch (final IOException | IllegalArgumentException | IllegalStateException exception) {
-          parent.error.println("tlsh: " + inputName + ": " + message(exception));
-          exitCode = DATA_ERROR;
-        }
-      }
-      return exitCode;
-    }
-
-    /** Selects stream or path hashing without taking ownership of standard input. */
-    private TlshDigest hash(final String inputName) throws IOException {
-      return "-".equals(inputName) ? Tlsh.hash(parent.input) : Tlsh.hash(Path.of(inputName));
-    }
-
-    /** Counts uses of the single process standard-input stream. */
-    private long standardInputCount() {
-      return inputs.stream().filter("-"::equals).count();
-    }
-  }
-
-  /** Calculates the TLSH difference score between two canonical digest strings. */
-  @Command(
-      name = "distance",
-      description = "Compare two canonical T1 digests.",
-      mixinStandardHelpOptions = true)
-  static final class DistanceCommand implements Callable<Integer> {
-
-    @ParentCommand private TlshCli parent;
-
-    @Option(
-        names = "--ignore-length",
-        description = "Do not include the encoded input-length difference.")
-    private boolean ignoreLength;
-
-    @Parameters(index = "0", paramLabel = "FIRST", description = "First canonical T1 digest.")
-    private String firstEncodedDigest;
-
-    @Parameters(index = "1", paramLabel = "SECOND", description = "Second canonical T1 digest.")
-    private String secondEncodedDigest;
-
-    /** Parses both digests and prints only their numeric score for scripting. */
-    @Override
-    public Integer call() {
-      try {
-        final TlshDigest first = TlshDigest.parse(firstEncodedDigest);
-        final TlshDigest second = TlshDigest.parse(secondEncodedDigest);
-        final int distance =
-            ignoreLength ? first.distanceToIgnoringLength(second) : first.distanceTo(second);
-        parent.output.println(distance);
-        return SUCCESS;
-      } catch (final IllegalArgumentException exception) {
-        parent.error.println("tlsh: invalid digest: " + message(exception));
-        return DATA_ERROR;
-      }
-    }
   }
 
   /** Supplies the application version from the CLI JAR manifest. */
@@ -183,8 +122,24 @@ public final class TlshCli implements Callable<Integer> {
   }
 
   /** Produces a nonempty one-line message for expected user-facing failures. */
-  private static String message(final Exception exception) {
+  static String message(final Exception exception) {
     final String detail = exception.getMessage();
     return detail == null || detail.isBlank() ? exception.getClass().getSimpleName() : detail;
+  }
+
+  InputStream input() {
+    return input;
+  }
+
+  PrintWriter output() {
+    return output;
+  }
+
+  PrintWriter error() {
+    return error;
+  }
+
+  CliTerminal terminal() {
+    return terminal;
   }
 }

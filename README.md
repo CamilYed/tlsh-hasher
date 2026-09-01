@@ -92,15 +92,30 @@ The generated launcher is `tlsh-cli/build/install/tlsh/bin/tlsh` on Unix-like sy
 
 ```shell
 tlsh hash file.bin another-file.bin
+tlsh hash samples/
+tlsh hash --recursive --progress=always samples/
 cat file.bin | tlsh hash -
 tlsh distance T1_FIRST_DIGEST T1_SECOND_DIGEST
 tlsh distance --ignore-length T1_FIRST_DIGEST T1_SECOND_DIGEST
 ```
 
-Hash output contains the canonical digest, two spaces, and the input name. Distance output contains
-only the decimal score so it can be consumed by scripts. The current application is a JVM
-distribution; the [CLI distribution decision](docs/architecture/0002-cli-distribution.md) describes
-the later, separately tested path to native executables for specific platforms.
+Running an installed `tlsh` launcher without arguments opens a small guided menu when a human
+terminal is attached. It can collect a file or folder path or guide a two-digest comparison. When
+standard streams are redirected, no-argument execution prints help and exits instead of waiting for
+input. This keeps pipes, IDE builds, and CI jobs safe.
+
+`hash` accepts files and directories. A directory includes its immediate regular files;
+`--recursive` also includes nested directories. Directory files are sorted for reproducible output,
+and overlapping arguments are de-duplicated. `--progress=auto` displays one live aggregate progress
+line only in a terminal. Use `--progress=always` for an IDE output window or `--progress=never` for
+fully quiet batch execution. Progress and batch summaries use standard error.
+
+Standard output remains a stable data stream: hash output contains the canonical digest, two
+spaces, and the input name, while distance output contains only the decimal score. It can therefore
+be redirected or piped without collecting progress presentation. `--no-summary` suppresses the
+folder or multi-file summary as well. The current application is a JVM distribution; the
+[CLI distribution decision](docs/architecture/0002-cli-distribution.md) describes the later,
+separately tested path to native executables for specific platforms.
 
 ## How it works
 

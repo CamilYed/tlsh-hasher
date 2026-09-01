@@ -10,10 +10,12 @@ The command-line application makes the library useful from shell scripts and pro
 consumer of its public API. It lives in the non-published `tlsh-cli` module so CLI dependencies and
 presentation choices do not leak into the dependency-free hashing library.
 
-The initial executable is deliberately small:
+The executable keeps a small command vocabulary while supporting both human and batch workflows:
 
 ```text
-tlsh hash FILE...
+tlsh
+tlsh hash PATH...
+tlsh hash [--recursive] [--progress=auto|always|never] PATH...
 tlsh hash -
 tlsh distance FIRST SECOND
 tlsh distance --ignore-length FIRST SECOND
@@ -39,6 +41,23 @@ than standard output, keeping successful output easy to pipe into other programs
 Expected user errors are concise and do not print Java stack traces. Multiple files can be hashed in
 one invocation; readable files still produce output when another file fails, and the final exit code
 is one.
+
+## Human and machine output
+
+No-argument execution starts a guided menu only when a real terminal is attached. The menu delegates
+to the same parsed commands as explicit invocation instead of maintaining a second hashing path. In
+a redirected process, no-argument execution prints help and exits so an unattended process never
+waits for a prompt.
+
+Files from a directory are sorted before hashing. Nested directories require an explicit
+`--recursive` option, and symbolic directories are not followed. These rules make the scope visible
+and prevent accidental cycles. Duplicate filesystem paths are hashed once.
+
+Successful digests and numeric distances remain on standard output. The live progress line,
+diagnostics, and batch summary use standard error. Consequently, presentation can evolve without
+changing data captured by a pipe. Progress defaults to `auto`, can be forced for an IDE with
+`always`, and can be disabled with `never`. Rendering is rate-limited and observes byte reads from
+the existing streaming API, so it does not retain complete files in memory.
 
 ## CLI framework
 
@@ -86,7 +105,7 @@ Native executables are not ready for distribution merely because they compile. A
 
 ## Deferred commands
 
-A file-to-file `compare` command, recursive directory processing, machine-readable JSON, threshold
-decisions, and parallel hashing are intentionally deferred. Each changes output, resource use, or
-failure semantics. They should be added from concrete workflows rather than making the first CLI
-large before its basic contract is exercised.
+A file-to-file `compare` command, machine-readable JSON, threshold decisions, and parallel hashing
+are intentionally deferred. Each changes output, resource use, or failure semantics. They should be
+added from concrete workflows rather than making the CLI large before its current contract is
+exercised.

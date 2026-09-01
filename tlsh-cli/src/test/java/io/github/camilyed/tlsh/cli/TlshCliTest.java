@@ -10,6 +10,9 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.List;
+import java.util.Queue;
 import java.util.Random;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -112,7 +115,9 @@ final class TlshCliTest {
     assertThat(exitCode).isEqualTo(TlshCli.DATA_ERROR);
     assertThat(output())
         .isEqualTo(Tlsh.hash(input).encoded() + "  " + validPath + System.lineSeparator());
-    assertThat(error()).contains("tlsh: " + missingPath + ":").doesNotContain("Exception", "\tat ");
+    assertThat(error())
+        .contains("tlsh: " + missingPath + ": path does not exist")
+        .doesNotContain("Exception", "\tat ");
   }
 
   @Test
@@ -150,11 +155,124 @@ final class TlshCliTest {
     assertThat(error()).contains("Missing required parameter: 'SECOND'", "Usage: tlsh distance");
   }
 
+  @Test
+  void shouldHashDirectoryFilesInDeterministicOrder(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final byte[] input = deterministicInput();
+    final Path second = Files.write(directory.resolve("b.bin"), input);
+    final Path first = Files.write(directory.resolve("a.bin"), input);
+
+    // when
+    final int exitCode = cli(new byte[0]).execute("hash", "--progress=never", directory.toString());
+
+    // then
+    assertThat(exitCode).isZero();
+    assertThat(output().lines())
+        .containsExactly(
+            Tlsh.hash(input).encoded() + "  " + first, Tlsh.hash(input).encoded() + "  " + second);
+    assertThat(error()).contains("✓ 2 files hashed", "8.0 KiB");
+  }
+
+  @Test
+  void shouldEnterNestedDirectoriesOnlyWhenRecursiveIsRequested(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final byte[] input = deterministicInput();
+    final Path direct = Files.write(directory.resolve("direct.bin"), input);
+    final Path nestedDirectory = Files.createDirectory(directory.resolve("nested"));
+    final Path nested = Files.write(nestedDirectory.resolve("nested.bin"), input);
+
+    // when
+    final int shallowExitCode =
+        cli(new byte[0]).execute("hash", "--progress=never", "--no-summary", directory.toString());
+
+    // then
+    assertThat(shallowExitCode).isZero();
+    assertThat(output()).contains(direct.toString()).doesNotContain(nested.toString());
+
+    createOutputStreams();
+
+    // when
+    final int recursiveExitCode =
+        cli(new byte[0])
+            .execute(
+                "hash", "--progress=never", "--no-summary", "--recursive", directory.toString());
+
+    // then
+    assertThat(recursiveExitCode).isZero();
+    assertThat(output()).contains(direct.toString(), nested.toString());
+  }
+
+  @Test
+  void shouldKeepProgressOnErrorStreamAndDigestOnOutput(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final byte[] input = deterministicInput();
+    final Path inputPath = Files.write(directory.resolve("input.bin"), input);
+
+    // when
+    final int exitCode =
+        cli(new byte[0]).execute("hash", "--progress=always", "--no-summary", inputPath.toString());
+
+    // then
+    assertThat(exitCode).isZero();
+    assertThat(output())
+        .isEqualTo(Tlsh.hash(input).encoded() + "  " + inputPath + System.lineSeparator())
+        .doesNotContain("%", "█", "░");
+    assertThat(error()).contains("100%", "4.0 KiB", inputPath.getFileName().toString());
+  }
+
+  @Test
+  void shouldGuideInteractiveUserIntoFolderHashing(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final byte[] input = deterministicInput();
+    final Path inputPath = Files.write(directory.resolve("interactive.bin"), input);
+    final ScriptedTerminal terminal = new ScriptedTerminal("1", inputPath.toString(), "n");
+
+    // when
+    final int exitCode = interactiveCli(new byte[0], terminal).execute();
+
+    // then
+    assertThat(exitCode).isZero();
+    assertThat(output())
+        .contains("TLSH · find similarity", "Hash a file or folder")
+        .contains(Tlsh.hash(input).encoded() + "  " + inputPath);
+    assertThat(terminal.prompts())
+        .containsExactly(
+            "Choose an action [1]: ", "File or folder path: ", "Include nested folders? [y/N]: ");
+  }
+
+  @Test
+  void shouldExplainHowToIncludeFilesFromNestedOnlyDirectory(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final Path nestedDirectory = Files.createDirectory(directory.resolve("nested"));
+    Files.write(nestedDirectory.resolve("input.bin"), deterministicInput());
+
+    // when
+    final int exitCode = cli(new byte[0]).execute("hash", directory.toString());
+
+    // then
+    assertThat(exitCode).isEqualTo(TlshCli.DATA_ERROR);
+    assertThat(output()).isEmpty();
+    assertThat(error()).contains("use --recursive to include subdirectories", "0 files hashed");
+  }
+
   private TlshCli cli(final byte[] input) {
     return new TlshCli(
         new ByteArrayInputStream(input),
         new PrintWriter(outputBytes, true, StandardCharsets.UTF_8),
         new PrintWriter(errorBytes, true, StandardCharsets.UTF_8));
+  }
+
+  private TlshCli interactiveCli(final byte[] input, final CliTerminal terminal) {
+    return new TlshCli(
+        new ByteArrayInputStream(input),
+        new PrintWriter(outputBytes, true, StandardCharsets.UTF_8),
+        new PrintWriter(errorBytes, true, StandardCharsets.UTF_8),
+        terminal);
   }
 
   private String output() {
@@ -169,5 +287,36 @@ final class TlshCliTest {
     final byte[] input = new byte[4_096];
     new Random(0x5EEDL).nextBytes(input);
     return input;
+  }
+
+  /** Supplies deterministic answers without claiming that redirected byte input is a console. */
+  private static final class ScriptedTerminal implements CliTerminal {
+
+    private final Queue<String> answers;
+    private final List<String> prompts = new java.util.ArrayList<>();
+
+    private ScriptedTerminal(final String... answers) {
+      this.answers = new ArrayDeque<>(List.of(answers));
+    }
+
+    @Override
+    public boolean interactive() {
+      return true;
+    }
+
+    @Override
+    public CommandLine.Help.Ansi ansi() {
+      return CommandLine.Help.Ansi.OFF;
+    }
+
+    @Override
+    public String readLine(final String prompt) {
+      prompts.add(prompt);
+      return answers.remove();
+    }
+
+    private List<String> prompts() {
+      return List.copyOf(prompts);
+    }
   }
 }

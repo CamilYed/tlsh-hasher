@@ -18,6 +18,8 @@ All notable changes to this project are documented here. The format loosely foll
 - Add a named `distanceToIgnoringLength` API and an external-package consumer smoke test.
 - Verify the public API from a separate named JPMS module during every build.
 - Add a non-published CLI module for hashing files or standard input and comparing encoded digests.
+- Add guided no-argument CLI use, directory discovery, recursive hashing, aggregate progress, and
+  batch summaries without changing script-oriented standard output.
 
 ### Changed
 
