@@ -19,7 +19,11 @@ not assumptions about where the hot path might be.
 - [x] Measure complete hashing for `byte[]` inputs.
 - [x] Measure complete hashing for `InputStream` inputs.
 - [x] Measure warm-cache complete hashing for `Path` inputs.
-- Measure digest parsing and distance calculation separately from hashing.
+- [x] Add isolated benchmarks for digest parsing and distance calculation.
+- [x] Record a full digest-operation baseline with the same controlled JMH configuration as
+  hashing.
+- Investigate and measure whether distance calculation can avoid defensive-copy allocation without
+  exposing the digest's mutable internal histogram.
 - Use deterministic generated inputs for repeatable sizes and selected official corpus files for a
   realistic secondary workload.
 - Record throughput, average latency, and allocation for small, medium, and large inputs.

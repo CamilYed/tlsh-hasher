@@ -49,6 +49,17 @@ Run only the path benchmark with allocation profiling:
   -Pjmh.profilers=gc
 ```
 
+Run only digest parsing and distance calculation:
+
+```shell
+./gradlew :tlsh-benchmarks:jmh \
+  -Pjmh.includes=TlshDigestBenchmark \
+  -Pjmh.profilers=gc
+```
+
+Parsing consumes the newly constructed digest. The distance benchmarks reuse two digests parsed
+before measurement, so their results contain comparison work but no text parsing or input hashing.
+
 Compare results only when the JDK, hardware, power mode, JMH options, and other relevant environment
 details are recorded alongside them.
 
@@ -63,3 +74,5 @@ Sizes use binary units: 1 KiB is 1,024 bytes and 1 MiB is 1,048,576 bytes. The d
   the fixed cost of the convenience stream API.
 - [2026-09-01: warm-cache path hashing](results/2026-09-01-path-warm-cache.md) isolates the
   additional cost of opening and closing a filesystem path for every hash operation.
+- [2026-09-01: digest operations](results/2026-09-01-digest-operations.md) measures canonical text
+  parsing and both distance modes independently of hashing.

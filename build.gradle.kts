@@ -133,8 +133,9 @@ extensions.configure<SpotlessExtension> {
             ".gitignore",
             "gradle.properties",
             "gradle/**/*.toml",
-            "tlsh-benchmarks/**/*.md",
-            "tlsh-benchmarks/**/*.svg",
+            "tlsh-benchmarks/README.md",
+            "tlsh-benchmarks/results/**/*.md",
+            "tlsh-benchmarks/results/**/*.svg",
         )
         trimTrailingWhitespace()
         endWithNewline()

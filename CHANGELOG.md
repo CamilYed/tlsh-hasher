@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The format loosely foll
 - Match pinned TLSH 5.0.0 digest and distance compatibility vectors.
 - Publish a named Java module with source and Javadoc artifacts.
 - Add non-published JMH benchmarks for byte-array, input-stream, and warm-cache path hashing.
+- Add isolated JMH benchmarks for digest parsing and distance calculation.
 
 ### Changed
 
