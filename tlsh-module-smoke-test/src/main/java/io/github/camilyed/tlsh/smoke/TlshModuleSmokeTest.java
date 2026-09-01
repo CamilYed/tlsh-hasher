@@ -20,7 +20,7 @@ public final class TlshModuleSmokeTest {
    *
    * @param arguments ignored command-line arguments
    */
-  public static void main(final String[] arguments) {
+  static void main(final String[] arguments) {
     final TlshDigest first = TlshDigest.parse(FIRST_ENCODED_DIGEST);
     final TlshDigest second = TlshDigest.parse(SECOND_ENCODED_DIGEST);
     require(first.distanceTo(second) == 766, "distance including length");
