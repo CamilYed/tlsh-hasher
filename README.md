@@ -99,10 +99,13 @@ tlsh distance T1_FIRST_DIGEST T1_SECOND_DIGEST
 tlsh distance --ignore-length T1_FIRST_DIGEST T1_SECOND_DIGEST
 ```
 
-Running an installed `tlsh` launcher without arguments opens a small guided menu when a human
-terminal is attached. It can collect a file or folder path or guide a two-digest comparison. When
-standard streams are redirected, no-argument execution prints help and exits instead of waiting for
-input. This keeps pipes, IDE builds, and CI jobs safe.
+Running an installed `tlsh` launcher without arguments opens a guided session when a human terminal
+is attached. Single-file and folder hashing are separate actions, so a file never triggers a
+question about nested directories. Paths may be relative, home-relative with `~`, quoted, pasted,
+or dragged from a graphical file manager into the terminal. Folder mode previews the number and
+combined size of selected files before starting. After every operation the menu remains open until
+the user chooses Exit. When standard streams are redirected, no-argument execution prints help and
+exits instead of waiting for input. This keeps pipes, IDE builds, and CI jobs safe.
 
 `hash` accepts files and directories. A directory includes its immediate regular files;
 `--recursive` also includes nested directories. Directory files are sorted for reproducible output,

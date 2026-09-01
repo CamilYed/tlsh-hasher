@@ -44,10 +44,16 @@ is one.
 
 ## Human and machine output
 
-No-argument execution starts a guided menu only when a real terminal is attached. The menu delegates
-to the same parsed commands as explicit invocation instead of maintaining a second hashing path. In
-a redirected process, no-argument execution prints help and exits so an unattended process never
-waits for a prompt.
+No-argument execution starts a persistent guided session only when a real terminal is attached.
+Single-file hashing, folder hashing, and digest comparison are separate actions. A file workflow
+therefore never asks about directory recursion, while folder mode previews scope, file count, and
+combined size before starting. Paths accept quoting, the conventional `~` home prefix, and the
+backslash escaping produced when dragging a path into common macOS terminals. After an operation,
+the menu remains available until the user explicitly exits.
+
+The menu delegates to the same parsed commands as explicit invocation instead of maintaining a
+second hashing path. In a redirected process, no-argument execution prints help and exits so an
+unattended process never waits for a prompt.
 
 Files from a directory are sorted before hashing. Nested directories require an explicit
 `--recursive` option, and symbolic directories are not followed. These rules make the scope visible

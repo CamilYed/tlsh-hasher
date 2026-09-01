@@ -20,6 +20,8 @@ All notable changes to this project are documented here. The format loosely foll
 - Add a non-published CLI module for hashing files or standard input and comparing encoded digests.
 - Add guided no-argument CLI use, directory discovery, recursive hashing, aggregate progress, and
   batch summaries without changing script-oriented standard output.
+- Separate guided file and folder workflows, preview folder batches, normalize pasted paths, and
+  keep the interactive session open across operations.
 
 ### Changed
 

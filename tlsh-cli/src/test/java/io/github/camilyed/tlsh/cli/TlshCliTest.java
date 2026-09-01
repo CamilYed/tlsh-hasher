@@ -224,12 +224,13 @@ final class TlshCliTest {
   }
 
   @Test
-  void shouldGuideInteractiveUserIntoFolderHashing(@TempDir final Path directory)
+  void shouldHashOneInteractiveFileWithoutAskingAboutFolders(@TempDir final Path directory)
       throws IOException {
     // given
     final byte[] input = deterministicInput();
-    final Path inputPath = Files.write(directory.resolve("interactive.bin"), input);
-    final ScriptedTerminal terminal = new ScriptedTerminal("1", inputPath.toString(), "n");
+    final Path inputPath = Files.write(directory.resolve("interactive file.bin"), input);
+    final ScriptedTerminal terminal =
+        new ScriptedTerminal("1", '"' + inputPath.toString() + '"', "4");
 
     // when
     final int exitCode = interactiveCli(new byte[0], terminal).execute();
@@ -237,11 +238,44 @@ final class TlshCliTest {
     // then
     assertThat(exitCode).isZero();
     assertThat(output())
-        .contains("TLSH · find similarity", "Hash a file or folder")
-        .contains(Tlsh.hash(input).encoded() + "  " + inputPath);
+        .contains("TLSH · find similarity", "Hash one file", "Hash a folder", "Bye.")
+        .contains(Tlsh.hash(input).encoded() + "  " + inputPath)
+        .doesNotContain("Choose scope", "nested folder");
+    assertThat(terminal.prompts())
+        .containsExactly("Choose an action [1]: ", "File path: ", "Choose an action [1]: ");
+  }
+
+  @Test
+  void shouldPreviewAndRecursivelyHashInteractiveFolder(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final byte[] input = deterministicInput();
+    final Path direct = Files.write(directory.resolve("direct.bin"), input);
+    final Path nestedDirectory = Files.createDirectory(directory.resolve("nested"));
+    final Path nested = Files.write(nestedDirectory.resolve("nested.bin"), input);
+    final ScriptedTerminal terminal = new ScriptedTerminal("2", directory.toString(), "2", "", "4");
+
+    // when
+    final int exitCode = interactiveCli(new byte[0], terminal).execute();
+
+    // then
+    assertThat(exitCode).isZero();
+    assertThat(output())
+        .contains(
+            "Hash a folder",
+            "This folder and every nested folder",
+            "Found 2 files · 8.0 KiB",
+            direct.toString(),
+            nested.toString(),
+            "Bye.");
+    assertThat(error()).contains("✓ 2 files hashed");
     assertThat(terminal.prompts())
         .containsExactly(
-            "Choose an action [1]: ", "File or folder path: ", "Include nested folders? [y/N]: ");
+            "Choose an action [1]: ",
+            "Folder path: ",
+            "Choose scope [1]: ",
+            "Start hashing? [Y/n]: ",
+            "Choose an action [1]: ");
   }
 
   @Test
