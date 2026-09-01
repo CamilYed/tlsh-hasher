@@ -129,6 +129,7 @@ extensions.configure<SpotlessExtension> {
     format("misc") {
         target(
             "*.md",
+            "docs/**/*.md",
             ".editorconfig",
             ".gitignore",
             "gradle.properties",

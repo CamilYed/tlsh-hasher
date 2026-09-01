@@ -35,6 +35,12 @@ not assumptions about where the hot path might be.
 Keep the current scalar implementation together until the public API and benchmark baseline are
 stable. Then evaluate this shape:
 
+- [x] Inventory the current public API and assign existing responsibilities to target modules.
+- [x] Record an explicit implementation-selection design without service loading.
+- Validate the proposed hashing interfaces against a second working implementation prototype before
+  publishing them.
+- Split the physical Gradle and JPMS modules only after that validation.
+
 ```text
 tlsh-core
   public digest types, parsing, distance, and implementation contracts

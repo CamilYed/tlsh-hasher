@@ -227,6 +227,8 @@ JIT performance guarantee.
 - [CONTRIBUTING.md](CONTRIBUTING.md) explains development and release checks.
 - [ROADMAP.md](ROADMAP.md) describes compatibility, benchmark, and module work planned before a
   release.
+- [Module boundaries](docs/architecture/0001-module-boundaries.md) records the reviewed public API,
+  target modules, and the conditions for splitting the current implementation.
 - Issues and design discussions are welcome in the GitHub repository.
 
 This project is licensed under the [Apache License 2.0](LICENSE).
