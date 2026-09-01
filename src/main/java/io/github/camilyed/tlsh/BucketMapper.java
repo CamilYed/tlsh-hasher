@@ -26,35 +26,39 @@ package io.github.camilyed.tlsh;
  * newest byte.
  *
  * <p>The Pearson mapper expects the newest byte first and the other two bytes from newer to older.
- * Therefore the chronological triplet {@code ABE} is passed to Pearson as {@code E, B, A}. The full
- * mapping is:
+ * Therefore the chronological triplet {@code ABE} is passed to Pearson as {@code E, B, A}. Each
+ * resulting index is recorded directly in the supplied histogram. The full mapping is:
  *
  * <pre>{@code
- * output 0: salt 13, E B A  (ABE)
- * output 1: salt  7, E C A  (ACE)
- * output 2: salt 11, E D A  (ADE)
- * output 3: salt  5, E C B  (BCE)
- * output 4: salt  3, E D B  (BDE)
- * output 5: salt  2, E D C  (CDE)
+ * hit 0: salt 13, E B A  (ABE)
+ * hit 1: salt  7, E C A  (ACE)
+ * hit 2: salt 11, E D A  (ADE)
+ * hit 3: salt  5, E C B  (BCE)
+ * hit 4: salt  3, E D B  (BDE)
+ * hit 5: salt  2, E D C  (CDE)
  * }</pre>
  *
  * <p>For the first combination, the mapper reads {@code E} from index {@code 4}, {@code B} from
  * index {@code 1}, and {@code A} from index {@code 0}:
  *
  * <pre>{@code
- * final int bucketIndex =
- *     pearsonHash.mapToBucketIndex(13, windowBytes[4], windowBytes[1], windowBytes[0]);
+ * final int bucketIndex = pearsonHash.mapToBucketIndex(
+ *     13, slidingWindow.byteAt(4), slidingWindow.byteAt(1), slidingWindow.byteAt(0));
  * histogram.recordHit(bucketIndex);
  * }</pre>
  *
  * <p>The Pearson permutation determines the numeric value of {@code bucketIndex}. The mapper does
- * not store the triplet itself; it returns the index of the histogram counter that represents that
- * local byte feature.
+ * not store the triplet itself. It increments the histogram counter that represents that local byte
+ * feature.
  *
- * <p>The output order follows the readable chronological order {@code ABE}, {@code ACE}, {@code
- * ADE}, {@code BCE}, {@code BDE}, and {@code CDE}. A histogram ultimately increments all six
- * returned indices, so their order does not change the final histogram as long as every mapping is
- * performed exactly once.
+ * <p>The processing order follows the readable chronological order {@code ABE}, {@code ACE}, {@code
+ * ADE}, {@code BCE}, {@code BDE}, and {@code CDE}. Their order does not change the final histogram
+ * as long as every mapping is performed exactly once.
+ *
+ * <p>The mapper reads individual bytes from the window and immediately records each result. It does
+ * not create a five-byte snapshot or a six-element result array for every input byte. This matters
+ * for large inputs because, after the first four bytes, every new byte produces another full
+ * window.
  *
  * <p>The salts {@code 2}, {@code 3}, {@code 5}, {@code 7}, {@code 11}, and {@code 13} are fixed
  * parts of TLSH. They give the six combinations different starting positions in the Pearson
@@ -86,30 +90,26 @@ final class BucketMapper {
   }
 
   /**
-   * Maps a full TLSH sliding-window snapshot to its six bucket indices.
+   * Maps the six features from a full TLSH sliding window directly into a histogram.
    *
-   * <p>A new result array is created for every invocation. Modifying the returned array therefore
-   * cannot affect later mappings.
+   * <p>The caller invokes this method only after the window reports that it is full. No triplet,
+   * window snapshot, or bucket-index array is created: each Pearson result immediately increments
+   * its corresponding histogram counter. If two results have the same index, that counter is
+   * incremented twice, as required by the algorithm.
    *
-   * @param windowBytes snapshot containing exactly five bytes ordered from oldest to newest
-   * @return six bucket indices ordered as {@code ABE}, {@code ACE}, {@code ADE}, {@code BCE},
-   *     {@code BDE}, and {@code CDE}
+   * @param slidingWindow full five-byte window ordered from oldest to newest
+   * @param featureHistogram histogram that receives exactly six feature hits
    */
-  int[] mapWindowToBucketIndices(final byte[] windowBytes) {
-    final int[] bucketIndices = new int[TRIPLET_MAPPINGS.length];
-
-    for (int mappingIndex = 0; mappingIndex < TRIPLET_MAPPINGS.length; mappingIndex++) {
-      final TripletMapping mapping = TRIPLET_MAPPINGS[mappingIndex];
-
-      bucketIndices[mappingIndex] =
+  void mapWindowIntoHistogram(final SlidingWindow slidingWindow, final Histogram featureHistogram) {
+    for (final TripletMapping mapping : TRIPLET_MAPPINGS) {
+      final int bucketIndex =
           pearsonHash.mapToBucketIndex(
               mapping.salt(),
-              windowBytes[NEWEST_BYTE_INDEX],
-              windowBytes[mapping.secondByteIndex()],
-              windowBytes[mapping.thirdByteIndex()]);
+              slidingWindow.byteAt(NEWEST_BYTE_INDEX),
+              slidingWindow.byteAt(mapping.secondByteIndex()),
+              slidingWindow.byteAt(mapping.thirdByteIndex()));
+      featureHistogram.recordHit(bucketIndex);
     }
-
-    return bucketIndices;
   }
 
   /**

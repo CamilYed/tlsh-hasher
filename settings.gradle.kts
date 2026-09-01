@@ -14,3 +14,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "tlsh-hasher"
+
+include("tlsh-benchmarks")

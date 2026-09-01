@@ -13,3 +13,7 @@ All notable changes to this project are documented here. The format loosely foll
 - Compare digests with or without the encoded-length contribution.
 - Match pinned TLSH 5.0.0 digest and distance compatibility vectors.
 - Publish a named Java module with source and Javadoc artifacts.
+
+### Changed
+
+- Remove per-window array allocations from the byte-processing hot path.

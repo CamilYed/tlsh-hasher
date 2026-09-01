@@ -12,8 +12,8 @@ import java.util.Arrays;
  * int}. The Java type can represent a much larger range, but this algorithm uses only its values
  * from {@code 0} through {@code 255}.
  *
- * <p>Whenever a five-byte sliding window is full, {@link BucketMapper} produces six bucket indices.
- * The counter at each returned index is incremented. For example, if a mapper produces bucket
+ * <p>Whenever a five-byte sliding window is full, {@link BucketMapper} calculates six bucket
+ * indices and records each result here immediately. For example, if a mapper calculates bucket
  * {@code 79} twice and bucket {@code 240} once, this histogram stores:
  *
  * <pre>{@code

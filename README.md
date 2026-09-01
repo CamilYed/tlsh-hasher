@@ -24,6 +24,7 @@ buckets and a one-byte checksum.
 - [Input eligibility](#input-eligibility)
 - [Compatibility](#compatibility)
 - [Build and verification](#build-and-verification)
+- [Performance experiments](#performance-experiments)
 - [Project](#project)
 
 ## Status
@@ -154,6 +155,21 @@ To apply formatting:
 Java sources use Google Java Format, including its two-space block indentation. To make IntelliJ
 IDEA's **Reformat Code** action produce the same result, install and enable the
 `google-java-format` plugin. Spotless remains the repository's formatting source of truth.
+
+## Performance experiments
+
+The non-published [`tlsh-benchmarks`](tlsh-benchmarks/README.md) module contains JMH benchmarks. Its
+first baseline measures complete `Tlsh.hash(byte[])` operations for deterministic inputs of several
+sizes:
+
+```shell
+./gradlew :tlsh-benchmarks:jmh
+```
+
+The default configuration is intentionally short and suitable for development checks, not for
+publishing performance claims. The benchmark documentation describes a longer run and allocation
+measurement. The first recorded experiment documents the
+[2026-08-31 allocation hot-path refactor](tlsh-benchmarks/results/2026-08-31-hot-path-refactor.md).
 
 ## Project conventions
 

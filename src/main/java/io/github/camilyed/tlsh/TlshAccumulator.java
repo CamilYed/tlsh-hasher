@@ -79,7 +79,7 @@ final class TlshAccumulator {
    * {@code featureHistogram} instance observe every bucket hit recorded by this accumulator. Code
    * holding the same {@code checksumAccumulator} observes its latest rolling value.
    *
-   * @param bucketMapper mapper that turns each full five-byte window into six bucket indices
+   * @param bucketMapper mapper that records six feature hits for each full five-byte window
    * @param featureHistogram histogram that receives the resulting bucket hits
    * @param checksumAccumulator accumulator that receives the two newest bytes of every full window
    * @param digestAssembler finalization pipeline that transforms the current accumulated state into
@@ -113,14 +113,8 @@ final class TlshAccumulator {
   void addByte(final byte currentByte) {
     inputLength += 1;
     if (slidingWindow.addByte(currentByte)) {
-      final byte[] fullWindow = slidingWindow.snapshot();
-      final int newestByteIndex = fullWindow.length - 1;
-      final int previousByteIndex = newestByteIndex - 1;
-      checksumAccumulator.update(fullWindow[newestByteIndex], fullWindow[previousByteIndex]);
-      final int[] bucketIndices = bucketMapper.mapWindowToBucketIndices(fullWindow);
-      for (final int bucketIndex : bucketIndices) {
-        featureHistogram.recordHit(bucketIndex);
-      }
+      checksumAccumulator.update(slidingWindow.byteAt(4), slidingWindow.byteAt(3));
+      bucketMapper.mapWindowIntoHistogram(slidingWindow, featureHistogram);
     }
   }
 

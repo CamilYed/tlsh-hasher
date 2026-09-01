@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="540" viewBox="0 0 1000 540" role="img" aria-labelledby="title description">
+  <title id="title">TLSH hot-path refactor benchmark results</title>
+  <desc id="description">Two bar charts compare throughput before and after the refactor and show allocation reduction for 256-byte, 4-kibibyte, and 1-mebibyte inputs.</desc>
+  <rect width="1000" height="540" fill="#ffffff"/>
+  <text x="500" y="34" text-anchor="middle" font-family="sans-serif" font-size="22" font-weight="700" fill="#172033">TLSH hot-path refactor — 2026-08-31</text>
+  <text x="500" y="58" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#526078">Same JDK, JMH settings, input data, and Compiler Blackhole mode</text>
+
+  <text x="270" y="91" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="700" fill="#172033">Input throughput (MiB/s)</text>
+  <line x1="65" y1="410" x2="485" y2="410" stroke="#8b96a8"/>
+  <line x1="65" y1="100" x2="65" y2="410" stroke="#8b96a8"/>
+  <g font-family="sans-serif" font-size="11" fill="#526078" text-anchor="end">
+    <text x="58" y="414">0</text>
+    <text x="58" y="326">20</text>
+    <text x="58" y="237">40</text>
+    <text x="58" y="149">60</text>
+  </g>
+  <g stroke="#e3e7ee">
+    <line x1="65" y1="321" x2="485" y2="321"/>
+    <line x1="65" y1="233" x2="485" y2="233"/>
+    <line x1="65" y1="144" x2="485" y2="144"/>
+  </g>
+  <g>
+    <rect x="105" y="217" width="30" height="193" rx="3" fill="#96a0b5"/>
+    <rect x="139" y="140" width="30" height="270" rx="3" fill="#2864dc"/>
+    <rect x="238" y="197" width="30" height="213" rx="3" fill="#96a0b5"/>
+    <rect x="272" y="129" width="30" height="281" rx="3" fill="#2864dc"/>
+    <rect x="371" y="195" width="30" height="215" rx="3" fill="#96a0b5"/>
+    <rect x="405" y="123" width="30" height="287" rx="3" fill="#2864dc"/>
+  </g>
+  <g font-family="sans-serif" font-size="11" fill="#172033" text-anchor="middle">
+    <text x="120" y="210">43.50</text>
+    <text x="154" y="133">60.86</text>
+    <text x="253" y="190">48.08</text>
+    <text x="287" y="122">63.51</text>
+    <text x="386" y="188">48.58</text>
+    <text x="420" y="116">64.81</text>
+    <text x="137" y="431">256 B</text>
+    <text x="270" y="431">4 KiB</text>
+    <text x="403" y="431">1 MiB</text>
+  </g>
+
+  <text x="755" y="91" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="700" fill="#172033">Allocation reduction (%)</text>
+  <line x1="560" y1="410" x2="955" y2="410" stroke="#8b96a8"/>
+  <line x1="560" y1="100" x2="560" y2="410" stroke="#8b96a8"/>
+  <g font-family="sans-serif" font-size="11" fill="#526078" text-anchor="end">
+    <text x="553" y="414">0</text>
+    <text x="553" y="352">20</text>
+    <text x="553" y="290">40</text>
+    <text x="553" y="228">60</text>
+    <text x="553" y="166">80</text>
+    <text x="553" y="104">100</text>
+  </g>
+  <g stroke="#e3e7ee">
+    <line x1="560" y1="348" x2="955" y2="348"/>
+    <line x1="560" y1="286" x2="955" y2="286"/>
+    <line x1="560" y1="224" x2="955" y2="224"/>
+    <line x1="560" y1="162" x2="955" y2="162"/>
+    <line x1="560" y1="100" x2="955" y2="100"/>
+  </g>
+  <g fill="#18a675">
+    <rect x="613" y="193" width="70" height="217" rx="4"/>
+    <rect x="720" y="108" width="70" height="302" rx="4"/>
+    <rect x="827" y="100" width="70" height="310" rx="4"/>
+  </g>
+  <g font-family="sans-serif" font-size="11" fill="#172033" text-anchor="middle">
+    <text x="648" y="186">70.024%</text>
+    <text x="755" y="101">97.333%</text>
+    <text x="862" y="93">99.989%</text>
+    <text x="648" y="431">256 B</text>
+    <text x="755" y="431">4 KiB</text>
+    <text x="862" y="431">1 MiB</text>
+  </g>
+
+  <g font-family="sans-serif" font-size="12" fill="#172033">
+    <rect x="310" y="475" width="14" height="14" rx="2" fill="#96a0b5"/>
+    <text x="332" y="487">Before</text>
+    <rect x="395" y="475" width="14" height="14" rx="2" fill="#2864dc"/>
+    <text x="417" y="487">After</text>
+    <rect x="490" y="475" width="14" height="14" rx="2" fill="#18a675"/>
+    <text x="512" y="487">Reduction</text>
+  </g>
+  <text x="500" y="520" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#68758b">Exploratory result from one Apple M3 Pro development machine; see the report for methodology and limits.</text>
+</svg>

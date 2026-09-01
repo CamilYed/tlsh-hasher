@@ -15,8 +15,9 @@ not assumptions about where the hot path might be.
 
 ## 2. Performance baseline
 
-- Add a non-published `tlsh-benchmarks` JMH module.
-- Measure complete hashing for `byte[]`, `InputStream`, and `Path` inputs.
+- [x] Add a non-published `tlsh-benchmarks` JMH module.
+- [x] Measure complete hashing for `byte[]` inputs.
+- [ ] Measure complete hashing for `InputStream` and `Path` inputs.
 - Measure digest parsing and distance calculation separately from hashing.
 - Use deterministic generated inputs for repeatable sizes and selected official corpus files for a
   realistic secondary workload.

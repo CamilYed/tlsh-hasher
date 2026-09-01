@@ -181,6 +181,7 @@ tasks.test {
 }
 
 tasks.check {
+    dependsOn(":tlsh-benchmarks:jmhClasses")
     dependsOn(tasks.javadoc)
     dependsOn(tasks.spotlessCheck)
 }

@@ -60,6 +60,23 @@ final class SlidingWindow {
   }
 
   /**
+   * Reads one position without creating a copy of the complete window.
+   *
+   * <p>This package-private operation exists for the allocation-sensitive hashing path. Internal
+   * algorithm stages know the fixed five-byte layout and only read the returned value; callers
+   * outside this package receive snapshots instead. Reading a {@code byte} cannot expose the
+   * backing array or allow its contents to be changed.
+   *
+   * @param index window position from {@code 0}, the oldest byte, through {@code 4}, the newest
+   *     byte
+   * @return byte currently stored at the requested position
+   * @throws IndexOutOfBoundsException when {@code index} is outside the five-byte window
+   */
+  byte byteAt(final int index) {
+    return windowBytes[index];
+  }
+
+  /**
    * Returns the six triplets anchored at the newest byte of a full window.
    *
    * <p>Each triplet combines the newest byte with one of the six possible pairs selected from the
