@@ -33,11 +33,11 @@ final class TlshDistanceTest {
 
   @Test
   void shouldMatchOfficialDifferenceScoresWithoutLength() {
-    assertThat(DIGEST_256.distanceTo(DIGEST_1_000, false)).isEqualTo(343);
-    assertThat(DIGEST_256.distanceTo(DIGEST_4_096, false)).isEqualTo(247);
-    assertThat(DIGEST_256.distanceTo(DIGEST_65_536, false)).isEqualTo(286);
-    assertThat(DIGEST_1_000.distanceTo(DIGEST_4_096, false)).isEqualTo(310);
-    assertThat(DIGEST_1_000.distanceTo(DIGEST_65_536, false)).isEqualTo(268);
-    assertThat(DIGEST_4_096.distanceTo(DIGEST_65_536, false)).isEqualTo(316);
+    assertThat(DIGEST_256.distanceToIgnoringLength(DIGEST_1_000)).isEqualTo(343);
+    assertThat(DIGEST_256.distanceToIgnoringLength(DIGEST_4_096)).isEqualTo(247);
+    assertThat(DIGEST_256.distanceToIgnoringLength(DIGEST_65_536)).isEqualTo(286);
+    assertThat(DIGEST_1_000.distanceToIgnoringLength(DIGEST_4_096)).isEqualTo(310);
+    assertThat(DIGEST_1_000.distanceToIgnoringLength(DIGEST_65_536)).isEqualTo(268);
+    assertThat(DIGEST_4_096.distanceToIgnoringLength(DIGEST_65_536)).isEqualTo(316);
   }
 }

@@ -70,7 +70,7 @@ TlshDigest first = TlshDigest.parse(firstEncodedDigest);
 TlshDigest second = TlshDigest.parse(secondEncodedDigest);
 
 int distance = first.distanceTo(second);
-int distanceWithoutLength = first.distanceTo(second, false);
+int distanceWithoutLength = first.distanceToIgnoringLength(second);
 ```
 
 The difference is a nonnegative score, not a percentage or probability. Smaller values indicate

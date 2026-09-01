@@ -50,7 +50,7 @@ final class OfficialTlshCorpusCompatibilityTest {
     final TlshDigest spanishNamesA = Tlsh.hash(fixtureRoot.resolve("spanish_place_namesA.txt"));
     final TlshDigest spanishNamesB = Tlsh.hash(fixtureRoot.resolve("spanish_place_namesB.txt"));
     assertThat(spanishNamesA.distanceTo(spanishNamesB)).isEqualTo(282);
-    assertThat(spanishNamesA.distanceTo(spanishNamesB, false)).isEqualTo(174);
+    assertThat(spanishNamesA.distanceToIgnoringLength(spanishNamesB)).isEqualTo(174);
   }
 
   private record OfficialFileVector(String fileName, String expectedDigest) {}

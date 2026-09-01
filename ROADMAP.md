@@ -61,6 +61,8 @@ there are at least two real implementations to select between.
 
 ## 4. Release readiness
 
+- [x] Exercise the complete public API from a separate consumer package that cannot access
+  package-private implementation classes.
 - Stabilize the public API after compatibility and benchmark work.
 - Review generated JAR, sources, Javadoc, POM, signatures, and module descriptor.
 - Publish only after the home-lab status and known limitations are accurately documented.

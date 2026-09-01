@@ -128,7 +128,27 @@ public record TlshDigest(int checksum, int lengthCode, int quartileRatios, byte[
   }
 
   /**
-   * Calculates the TLSH difference score with optional input-length contribution.
+   * Calculates the TLSH difference score without comparing the encoded input lengths.
+   *
+   * <p>This variant is useful when inputs can contain similar content at substantially different
+   * sizes and the caller deliberately wants to compare their checksum, quartile ratios, and
+   * histogram only. The result remains a TLSH difference score rather than a percentage or
+   * probability.
+   *
+   * @param other digest to compare with this digest
+   * @return nonnegative TLSH difference score without a length contribution
+   * @throws NullPointerException when {@code other} is {@code null}
+   */
+  public int distanceToIgnoringLength(final TlshDigest other) {
+    return distanceTo(other, false);
+  }
+
+  /**
+   * Calculates the TLSH difference score with a configurable input-length contribution.
+   *
+   * <p>{@link #distanceTo(TlshDigest)} and {@link #distanceToIgnoringLength(TlshDigest)} are
+   * clearer choices at ordinary call sites. This overload is useful when the choice is already
+   * represented by a boolean configuration value.
    *
    * @param other digest to compare with this digest
    * @param includeLength whether differences between encoded input lengths should affect the score

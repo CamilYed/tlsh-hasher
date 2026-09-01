@@ -67,6 +67,6 @@ public class TlshDigestBenchmark {
    */
   @Benchmark
   public void distanceExcludingLength(final Blackhole blackhole) {
-    blackhole.consume(firstDigest.distanceTo(secondDigest, false));
+    blackhole.consume(firstDigest.distanceToIgnoringLength(secondDigest));
   }
 }

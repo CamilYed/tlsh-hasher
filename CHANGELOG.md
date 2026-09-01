@@ -15,6 +15,7 @@ All notable changes to this project are documented here. The format loosely foll
 - Publish a named Java module with source and Javadoc artifacts.
 - Add non-published JMH benchmarks for byte-array, input-stream, and warm-cache path hashing.
 - Add isolated JMH benchmarks for digest parsing and distance calculation.
+- Add a named `distanceToIgnoringLength` API and an external-package consumer smoke test.
 
 ### Changed
 
