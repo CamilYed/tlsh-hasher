@@ -76,3 +76,5 @@ Sizes use binary units: 1 KiB is 1,024 bytes and 1 MiB is 1,048,576 bytes. The d
   additional cost of opening and closing a filesystem path for every hash operation.
 - [2026-09-01: digest operations](results/2026-09-01-digest-operations.md) measures canonical text
   parsing and both distance modes independently of hashing.
+- [2026-09-01: allocation-free distance](results/2026-09-01-allocation-free-distance.md) compares
+  distance calculation before and after removing defensive copies from its internal read path.

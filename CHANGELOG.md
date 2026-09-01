@@ -19,3 +19,4 @@ All notable changes to this project are documented here. The format loosely foll
 ### Changed
 
 - Remove per-window array allocations from the byte-processing hot path.
+- Make distance calculation allocation-free without exposing mutable digest state.

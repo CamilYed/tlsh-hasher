@@ -22,8 +22,8 @@ not assumptions about where the hot path might be.
 - [x] Add isolated benchmarks for digest parsing and distance calculation.
 - [x] Record a full digest-operation baseline with the same controlled JMH configuration as
   hashing.
-- Investigate and measure whether distance calculation can avoid defensive-copy allocation without
-  exposing the digest's mutable internal histogram.
+- [x] Remove defensive-copy allocation from distance calculation without exposing the digest's
+  mutable internal histogram, then compare it with the recorded baseline.
 - Use deterministic generated inputs for repeatable sizes and selected official corpus files for a
   realistic secondary workload.
 - Record throughput, average latency, and allocation for small, medium, and large inputs.

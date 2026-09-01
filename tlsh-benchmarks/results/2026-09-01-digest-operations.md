@@ -39,6 +39,9 @@ internal access design that cannot expose mutable state to users. This baseline 
 for that future refactor: compatibility must remain unchanged while distance allocation approaches
 zero.
 
+That follow-up experiment is recorded in
+[Allocation-free distance calculation](2026-09-01-allocation-free-distance.md).
+
 ## Method
 
 All three operations were measured in the same JMH invocation:

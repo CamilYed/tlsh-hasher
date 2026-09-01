@@ -55,7 +55,7 @@ final class TlshDistanceCalculator {
       difference += 1;
     }
 
-    difference += histogramDistance(first.histogramCode(), second.histogramCode());
+    difference += histogramDistance(first, second);
     return difference;
   }
 
@@ -86,11 +86,11 @@ final class TlshDistanceCalculator {
   }
 
   /** Sums corresponding two-bit level differences across all 32 packed bytes. */
-  private static int histogramDistance(final byte[] firstCode, final byte[] secondCode) {
+  private static int histogramDistance(final TlshDigest first, final TlshDigest second) {
     int difference = 0;
-    for (int byteIndex = 0; byteIndex < firstCode.length; byteIndex++) {
-      final int firstByte = Byte.toUnsignedInt(firstCode[byteIndex]);
-      final int secondByte = Byte.toUnsignedInt(secondCode[byteIndex]);
+    for (int byteIndex = 0; byteIndex < TlshDigest.HISTOGRAM_CODE_SIZE; byteIndex++) {
+      final int firstByte = Byte.toUnsignedInt(first.histogramCodeByteAt(byteIndex));
+      final int secondByte = Byte.toUnsignedInt(second.histogramCodeByteAt(byteIndex));
       for (int pairIndex = 0; pairIndex < TWO_BIT_VALUES_PER_BYTE; pairIndex++) {
         final int shift = pairIndex * 2;
         final int firstValue = (firstByte >>> shift) & TWO_BIT_VALUE_MASK;

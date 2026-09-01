@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="540" viewBox="0 0 1000 540" role="img" aria-labelledby="title description">
+  <title id="title">TLSH distance calculation before and after removing defensive copies</title>
+  <desc id="description">Grouped bar charts compare throughput and normalized allocation for distance calculation with and without the encoded-length contribution.</desc>
+  <rect width="1000" height="540" fill="#ffffff"/>
+  <text x="500" y="34" text-anchor="middle" font-family="sans-serif" font-size="22" font-weight="700" fill="#172033">Allocation-free TLSH distance — 2026-09-01</text>
+  <text x="500" y="58" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#526078">Primitive internal reads preserve the public defensive-copy boundary</text>
+
+  <text x="270" y="91" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="700" fill="#172033">Throughput (million ops/s)</text>
+  <line x1="65" y1="410" x2="485" y2="410" stroke="#8b96a8"/>
+  <line x1="65" y1="100" x2="65" y2="410" stroke="#8b96a8"/>
+  <g font-family="sans-serif" font-size="11" fill="#526078" text-anchor="end">
+    <text x="58" y="414">0</text>
+    <text x="58" y="340">5</text>
+    <text x="58" y="266">10</text>
+    <text x="58" y="192">15</text>
+    <text x="58" y="118">20</text>
+  </g>
+  <g stroke="#e3e7ee">
+    <line x1="65" y1="336" x2="485" y2="336"/>
+    <line x1="65" y1="262" x2="485" y2="262"/>
+    <line x1="65" y1="188" x2="485" y2="188"/>
+    <line x1="65" y1="114" x2="485" y2="114"/>
+  </g>
+  <rect x="118" y="262" width="55" height="148" rx="4" fill="#8b96a8"/>
+  <rect x="177" y="125" width="55" height="285" rx="4" fill="#2864dc"/>
+  <rect x="318" y="245" width="55" height="165" rx="4" fill="#8b96a8"/>
+  <rect x="377" y="120" width="55" height="290" rx="4" fill="#2864dc"/>
+  <g font-family="sans-serif" font-size="11" fill="#172033" text-anchor="middle">
+    <text x="145" y="255">9.97</text>
+    <text x="204" y="118">19.24</text>
+    <text x="345" y="238">11.18</text>
+    <text x="404" y="113">19.58</text>
+    <text x="175" y="431">With length</text>
+    <text x="375" y="431">Without length</text>
+  </g>
+
+  <text x="755" y="91" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="700" fill="#172033">Allocation (B/op)</text>
+  <line x1="560" y1="410" x2="955" y2="410" stroke="#8b96a8"/>
+  <line x1="560" y1="100" x2="560" y2="410" stroke="#8b96a8"/>
+  <g font-family="sans-serif" font-size="11" fill="#526078" text-anchor="end">
+    <text x="553" y="414">0</text>
+    <text x="553" y="310">32</text>
+    <text x="553" y="207">64</text>
+    <text x="553" y="104">96</text>
+  </g>
+  <g stroke="#e3e7ee">
+    <line x1="560" y1="307" x2="955" y2="307"/>
+    <line x1="560" y1="203" x2="955" y2="203"/>
+    <line x1="560" y1="100" x2="955" y2="100"/>
+  </g>
+  <rect x="613" y="100" width="55" height="310" rx="4" fill="#8b96a8"/>
+  <rect x="672" y="408" width="55" height="2" rx="1" fill="#2864dc"/>
+  <rect x="813" y="100" width="55" height="310" rx="4" fill="#8b96a8"/>
+  <rect x="872" y="408" width="55" height="2" rx="1" fill="#2864dc"/>
+  <g font-family="sans-serif" font-size="11" fill="#172033" text-anchor="middle">
+    <text x="640" y="93">96</text>
+    <text x="699" y="401">≈0</text>
+    <text x="840" y="93">96</text>
+    <text x="899" y="401">≈0</text>
+    <text x="670" y="431">With length</text>
+    <text x="870" y="431">Without length</text>
+  </g>
+
+  <g font-family="sans-serif" font-size="12" fill="#172033">
+    <rect x="420" y="475" width="14" height="14" rx="2" fill="#8b96a8"/>
+    <text x="442" y="487">Before</text>
+    <rect x="505" y="475" width="14" height="14" rx="2" fill="#2864dc"/>
+    <text x="527" y="487">After</text>
+  </g>
+  <text x="500" y="520" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#68758b">Exploratory result from one Apple M3 Pro development machine; see the report for methodology and limits.</text>
+</svg>

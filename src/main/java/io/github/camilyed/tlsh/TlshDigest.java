@@ -45,7 +45,9 @@ import java.util.Objects;
 public record TlshDigest(int checksum, int lengthCode, int quartileRatios, byte[] histogramCode) {
   private static final int MAX_UNSIGNED_BYTE_VALUE = 255;
   private static final int MAX_LENGTH_CODE = 169;
-  private static final int HISTOGRAM_CODE_SIZE = 32;
+
+  /** Number of bytes that store the 128 packed two-bit histogram levels. */
+  static final int HISTOGRAM_CODE_SIZE = 32;
 
   /**
    * Validates every component and stores a defensive copy of the histogram code.
@@ -71,6 +73,22 @@ public record TlshDigest(int checksum, int lengthCode, int quartileRatios, byte[
   @Override
   public byte[] histogramCode() {
     return histogramCode.clone();
+  }
+
+  /**
+   * Returns one packed histogram byte without exposing the mutable backing array.
+   *
+   * <p>This package-private operation is for internal algorithms that only need to read the digest.
+   * Unlike {@link #histogramCode()}, it does not allocate a complete defensive copy on every call.
+   * Returning one primitive byte cannot give the caller a reference through which the digest could
+   * be changed.
+   *
+   * @param index packed histogram-byte position in {@code 0..31}
+   * @return packed histogram byte at the requested position
+   * @throws ArrayIndexOutOfBoundsException when {@code index} is outside {@code 0..31}
+   */
+  byte histogramCodeByteAt(final int index) {
+    return histogramCode[index];
   }
 
   /**
