@@ -8,6 +8,7 @@
  *
  * <p>This implementation uses the standard versioned {@code T1} representation with 128 histogram
  * buckets and a one-byte checksum. Inputs must contain at least 256 bytes and enough variation to
- * produce a meaningful similarity digest.
+ * produce a meaningful similarity digest. Alternate reference-library configurations and the legacy
+ * unprefixed representation are outside the current compatibility scope.
  */
 package io.github.camilyed.tlsh;

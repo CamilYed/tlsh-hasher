@@ -16,7 +16,9 @@ import java.util.HexFormat;
  * + 32 histogram bytes in reverse byte order
  * }</pre>
  *
- * <p>{@code T1} is the two-character version prefix. Every following byte is written as two
+ * <p>{@code T1} is the two-character version prefix used by the standard TLSH representation with
+ * 128 effective histogram buckets and a one-byte checksum. The prefix identifies the digest format;
+ * it is not one of the calculated similarity features. Every following byte is written as two
  * uppercase hexadecimal characters, so the complete length is:
  *
  * <pre>{@code

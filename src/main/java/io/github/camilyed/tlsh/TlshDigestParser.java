@@ -3,7 +3,14 @@ package io.github.camilyed.tlsh;
 import java.util.HexFormat;
 import java.util.Objects;
 
-/** Reconstructs a structured digest from its canonical versioned hexadecimal representation. */
+/**
+ * Reconstructs a structured digest from its canonical versioned hexadecimal representation.
+ *
+ * <p>This parser accepts the 72-character {@code T1} form for the standard configuration with 128
+ * effective histogram buckets and a one-byte checksum. It does not accept the legacy 70-character
+ * form without a version prefix or representations produced with alternative bucket and checksum
+ * sizes.
+ */
 final class TlshDigestParser {
 
   private static final String VERSION_PREFIX = "T1";
