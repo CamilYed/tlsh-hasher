@@ -25,8 +25,8 @@ final class InteractivePrompter {
   }
 
   /** Reads a filesystem path with JLine completion enabled for the Tab key. */
-  Optional<Path> path(final String prompt) {
-    final String answer = terminal.readPath(style.accent(prompt));
+  Optional<Path> path(final String prompt, final PathCompletionMode completionMode) {
+    final String answer = terminal.readPath(style.accent(prompt), completionMode);
     if (answer == null || answer.isBlank()) {
       return Optional.empty();
     }

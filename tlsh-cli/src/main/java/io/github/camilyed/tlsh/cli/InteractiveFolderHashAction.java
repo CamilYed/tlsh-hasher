@@ -2,30 +2,31 @@ package io.github.camilyed.tlsh.cli;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
-/** Previews one folder batch before delegating its execution to {@link HashCommand}. */
-final class InteractiveFolderHashWorkflow {
+/** Previews one folder batch before invoking the shared hashing use case. */
+final class InteractiveFolderHashAction implements InteractiveAction {
 
   private static final String BACK_HINT = "Leave empty to return to the menu.";
 
   private final TlshCli cli;
   private final InteractivePrompter prompter;
 
-  InteractiveFolderHashWorkflow(final TlshCli cli, final InteractivePrompter prompter) {
+  InteractiveFolderHashAction(final TlshCli cli, final InteractivePrompter prompter) {
     this.cli = cli;
     this.prompter = prompter;
   }
 
   /** Selects traversal scope, displays its cost, confirms, and starts the batch. */
-  void run() {
+  public void execute() {
     prompter.blankLine();
     prompter.heading("Hash a folder");
     printPathHints();
-    final Optional<Path> selectedPath = prompter.path("Folder path: ");
+    final Optional<Path> selectedPath =
+        prompter.path("Folder path: ", PathCompletionMode.DIRECTORIES_ONLY);
     if (selectedPath.isEmpty()) {
       return;
     }
@@ -45,27 +46,42 @@ final class InteractiveFolderHashWorkflow {
       return;
     }
     final HashInputDiscovery.Result preview =
-        new HashInputDiscovery().discover(List.of(directory.toString()), recursive.orElseThrow());
+        new HashInputDiscovery()
+            .discover(List.of(directory.toString()), recursive.orElseThrow(), false);
     if (preview.inputs().isEmpty()) {
-      printPreviewFailures(preview.failures());
+      printEmptyPreview(preview);
       return;
     }
 
-    printPreview(preview.inputs());
+    printPreview(preview);
     if (!prompter.yesByDefault(prompter.answer("Start hashing? [Y/n]: "))) {
       prompter.line(prompter.style().muted("Cancelled."));
       return;
     }
 
-    final List<String> arguments = new ArrayList<>();
-    arguments.add("hash");
-    arguments.add("--progress=always");
-    if (recursive.orElseThrow()) {
-      arguments.add("--recursive");
-    }
-    arguments.add(directory.toAbsolutePath().toString());
     prompter.blankLine();
-    cli.execute(arguments.toArray(String[]::new));
+    cli.hash(
+        new HashBatchRequest(
+            List.of(directory.toAbsolutePath().toString()),
+            recursive.orElseThrow(),
+            false,
+            ProgressMode.ALWAYS,
+            true));
+  }
+
+  @Override
+  public String key() {
+    return "2";
+  }
+
+  @Override
+  public String description() {
+    return "Hash a folder";
+  }
+
+  @Override
+  public Set<String> aliases() {
+    return Set.of("folder", "directory");
   }
 
   /** Shows the working directory and the three convenient ways to provide a folder. */
@@ -95,14 +111,16 @@ final class InteractiveFolderHashWorkflow {
   }
 
   /** Highlights the amount of work before the user confirms it. */
-  private void printPreview(final List<HashInput> inputs) {
+  private void printPreview(final HashInputDiscovery.Result preview) {
     prompter.blankLine();
+    final List<HashInput> inputs = preview.inputs();
     final String fileCount = inputs.size() + pluralize(inputs.size(), " file", " files");
     prompter.line(
         "Found "
             + prompter.style().accent(fileCount)
             + " · "
-            + prompter.style().accent(HumanUnits.bytes(expectedBytes(inputs))));
+            + prompter.style().accent(HumanUnits.bytes(expectedBytes(inputs)))
+            + hiddenPreviewSuffix(preview.skippedHiddenEntries()));
   }
 
   /** Sums already inspected file sizes for the batch preview. */
@@ -117,11 +135,35 @@ final class InteractiveFolderHashWorkflow {
     return total;
   }
 
-  /** Prints discovery diagnostics before returning to the main menu. */
-  private void printPreviewFailures(final List<HashInputDiscovery.Failure> failures) {
-    for (final HashInputDiscovery.Failure failure : failures) {
+  /** Explains either a true discovery failure or an intentionally empty visible selection. */
+  private void printEmptyPreview(final HashInputDiscovery.Result preview) {
+    for (final HashInputDiscovery.Failure failure : preview.failures()) {
       prompter.error(failure.inputName() + ": " + failure.detail());
     }
+    if (preview.failures().isEmpty()) {
+      prompter.line(
+          prompter
+              .style()
+              .muted(
+                  "No visible files found"
+                      + hiddenPreviewSuffix(preview.skippedHiddenEntries())
+                      + "."));
+    }
+  }
+
+  /** Shows that hidden entries are excluded by the default folder policy. */
+  private String hiddenPreviewSuffix(final int skippedHiddenEntries) {
+    return skippedHiddenEntries == 0
+        ? ""
+        : " · "
+            + prompter
+                .style()
+                .muted(
+                    skippedHiddenEntries
+                        + pluralize(
+                            skippedHiddenEntries,
+                            " hidden entry skipped",
+                            " hidden entries skipped"));
   }
 
   /** Chooses a singular or plural noun without introducing a formatting dependency. */

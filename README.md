@@ -94,7 +94,10 @@ The generated launcher is `tlsh-cli/build/install/tlsh/bin/tlsh` on Unix-like sy
 tlsh hash file.bin another-file.bin
 tlsh hash samples/
 tlsh hash --recursive --progress=always samples/
+tlsh hash --recursive --include-hidden samples/
 cat file.bin | tlsh hash -
+tlsh compare first.bin second.bin
+tlsh compare --ignore-length first.bin second.bin
 tlsh distance T1_FIRST_DIGEST T1_SECOND_DIGEST
 tlsh distance --ignore-length T1_FIRST_DIGEST T1_SECOND_DIGEST
 ```
@@ -109,16 +112,24 @@ chooses Exit. When standard streams are redirected, no-argument execution prints
 instead of waiting for input. This keeps pipes, IDE builds, and CI jobs safe.
 
 `hash` accepts files and directories. A directory includes its immediate regular files;
-`--recursive` also includes nested directories. Directory files are sorted for reproducible output,
-and overlapping arguments are de-duplicated. `--progress=auto` displays one live aggregate progress
-line only in a terminal. Use `--progress=always` for an IDE output window or `--progress=never` for
-fully quiet batch execution. Progress and batch summaries use standard error.
+`--recursive` also includes nested directories. Hidden entries are skipped during directory
+discovery by default, and the summary reports how many were skipped. Use `--include-hidden` to hash
+hidden files and descend into hidden directories. A hidden file supplied explicitly is always
+processed. Directory files are sorted for reproducible output, and overlapping arguments are
+de-duplicated. `--progress=auto` displays one live aggregate progress line only in a terminal. Use
+`--progress=always` for an IDE output window or `--progress=never` for fully quiet batch execution.
+Progress and batch summaries use standard error.
 
 If one item fails, hashing continues for the remaining files. The final summary gives the successful
 and attempted counts, then repeats failed paths and their reasons in a separate colored section so a
 failure cannot disappear among many successful digest lines. An explicitly closed guided session
 still exits successfully; an explicit `tlsh hash ...` invocation returns exit code `1` when any
 requested item fails.
+
+`compare` hashes two regular files and prints their numeric TLSH distance. `distance` performs the
+same calculation from two existing canonical digests. Both accept `--ignore-length`. The guided
+file comparison additionally displays the complete digests and reminds the user that the result is
+neither a percentage nor proof of byte-for-byte equality.
 
 Standard output remains a stable data stream: hash output contains the canonical digest, two
 spaces, and the input name, while distance output contains only the decimal score. It can therefore

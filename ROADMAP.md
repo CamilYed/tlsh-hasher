@@ -74,7 +74,10 @@ there are at least two real implementations to select between.
 - [x] Add a separate named `tlsh-cli` module with generated help and version options.
 - [x] Hash one or more files or standard input with stable line-oriented output.
 - [x] Compare two encoded digests with or without the length contribution.
-- Add a file-to-file convenience command only after its output contract is specified.
+- [x] Add a file-to-file command with a numeric standard-output contract and a descriptive guided
+  presentation.
+- Specify threshold semantics, pair-count limits, and output ordering before adding a directory-wide
+  similar-file search; a naive scan performs `n * (n - 1) / 2` comparisons.
 - Build JVM application archives and launch scripts before attempting native executables.
 - Add GraalVM Native Image only with tests and per-platform CI runners; do not assume that one
   runner can produce every operating-system and architecture combination.

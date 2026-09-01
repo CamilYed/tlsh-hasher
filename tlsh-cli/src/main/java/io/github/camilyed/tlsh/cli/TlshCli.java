@@ -23,7 +23,7 @@ import picocli.CommandLine.Spec;
     optionListHeading = "%n@|bold Options:|@%n",
     mixinStandardHelpOptions = true,
     versionProvider = TlshCli.VersionProvider.class,
-    subcommands = {HashCommand.class, DistanceCommand.class})
+    subcommands = {HashCommand.class, CompareFilesCommand.class, DistanceCommand.class})
 public final class TlshCli implements Callable<Integer>, AutoCloseable {
 
   static final int SUCCESS = 0;
@@ -144,6 +144,16 @@ public final class TlshCli implements Callable<Integer>, AutoCloseable {
 
   CliTerminal terminal() {
     return terminal;
+  }
+
+  /** Runs the hashing use case without re-entering the Picocli argument parser. */
+  int hash(final HashBatchRequest request) {
+    return new HashBatchUseCase(input, output, error, terminal).execute(request);
+  }
+
+  /** Compares two files through the shared use case used by both CLI adapters. */
+  FileComparison compareFiles(final FileComparisonRequest request) throws FileComparisonException {
+    return new FileComparisonUseCase().execute(request);
   }
 
   /** Restores terminal state after an interactive session. */

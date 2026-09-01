@@ -2,10 +2,15 @@ package io.github.camilyed.tlsh.cli;
 
 import java.io.Console;
 import java.io.IOException;
+import java.nio.file.Path;
+import org.jline.builtins.Completers.DirectoriesCompleter;
 import org.jline.builtins.Completers.FileNameCompleter;
+import org.jline.reader.Candidate;
+import org.jline.reader.Completer;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.ParsedLine;
 import org.jline.reader.Reference;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
@@ -19,10 +24,13 @@ final class JLineCliTerminal implements CliTerminal {
 
   private final Terminal terminal;
   private final LineReader reader;
+  private final PathCompleter pathCompleter;
 
-  private JLineCliTerminal(final Terminal terminal, final LineReader reader) {
+  private JLineCliTerminal(
+      final Terminal terminal, final LineReader reader, final PathCompleter pathCompleter) {
     this.terminal = terminal;
     this.reader = reader;
+    this.pathCompleter = pathCompleter;
   }
 
   /**
@@ -38,11 +46,12 @@ final class JLineCliTerminal implements CliTerminal {
     }
     try {
       final Terminal terminal = TerminalBuilder.builder().system(true).build();
+      final PathCompleter pathCompleter = new PathCompleter();
       final LineReader reader =
           LineReaderBuilder.builder()
               .appName("tlsh")
               .terminal(terminal)
-              .completer(new FileNameCompleter())
+              .completer(pathCompleter)
               .option(LineReader.Option.CASE_INSENSITIVE, true)
               .option(LineReader.Option.HISTORY_IGNORE_DUPS, true)
               .option(LineReader.Option.MENU_COMPLETE, true)
@@ -50,7 +59,7 @@ final class JLineCliTerminal implements CliTerminal {
               .variable(LineReader.LIST_MAX, MAXIMUM_LISTED_COMPLETIONS)
               .build();
       reader.getKeyMaps().get(LineReader.MAIN).bind(new Reference(LineReader.COMPLETE_WORD), "\t");
-      return new JLineCliTerminal(terminal, reader);
+      return new JLineCliTerminal(terminal, reader, pathCompleter);
     } catch (final IOException | RuntimeException exception) {
       return CliTerminal.nonInteractive();
     }
@@ -68,17 +77,20 @@ final class JLineCliTerminal implements CliTerminal {
 
   @Override
   public String readLine(final String prompt) {
+    pathCompleter.disable();
     reader.setVariable(LineReader.DISABLE_COMPLETION, true);
     return read(prompt);
   }
 
   @Override
-  public String readPath(final String prompt) {
+  public String readPath(final String prompt, final PathCompletionMode completionMode) {
+    pathCompleter.enable(completionMode);
     reader.setVariable(LineReader.DISABLE_COMPLETION, false);
     try {
       return read(prompt);
     } finally {
       reader.setVariable(LineReader.DISABLE_COMPLETION, true);
+      pathCompleter.disable();
     }
   }
 
@@ -100,6 +112,34 @@ final class JLineCliTerminal implements CliTerminal {
       terminal.close();
     } catch (final IOException exception) {
       // Closing the process terminal is best-effort; command results have already been produced.
+    }
+  }
+
+  /** Selects the completion algorithm requested by the currently active path prompt. */
+  private static final class PathCompleter implements Completer {
+
+    private final Completer filesAndDirectories = new FileNameCompleter();
+    private final Completer directoriesOnly = new DirectoriesCompleter(Path.of(""));
+    private PathCompletionMode mode;
+
+    @Override
+    public void complete(
+        final LineReader reader,
+        final ParsedLine line,
+        final java.util.List<Candidate> candidates) {
+      if (mode == PathCompletionMode.FILES_AND_DIRECTORIES) {
+        filesAndDirectories.complete(reader, line, candidates);
+      } else if (mode == PathCompletionMode.DIRECTORIES_ONLY) {
+        directoriesOnly.complete(reader, line, candidates);
+      }
+    }
+
+    private void enable(final PathCompletionMode completionMode) {
+      mode = completionMode;
+    }
+
+    private void disable() {
+      mode = null;
     }
   }
 }

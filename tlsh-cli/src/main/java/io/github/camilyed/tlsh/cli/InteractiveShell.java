@@ -1,21 +1,24 @@
 package io.github.camilyed.tlsh.cli;
 
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /** Owns the persistent interactive menu while specialized workflows perform individual actions. */
 final class InteractiveShell {
 
   private final InteractivePrompter prompter;
-  private final InteractiveFileHashWorkflow fileHashWorkflow;
-  private final InteractiveFolderHashWorkflow folderHashWorkflow;
-  private final InteractiveDistanceWorkflow distanceWorkflow;
+  private final List<InteractiveAction> actions;
 
   InteractiveShell(final TlshCli cli, final CliTerminal terminal, final PrintWriter output) {
     prompter = new InteractivePrompter(terminal, output);
-    fileHashWorkflow = new InteractiveFileHashWorkflow(cli, prompter);
-    folderHashWorkflow = new InteractiveFolderHashWorkflow(cli, prompter);
-    distanceWorkflow = new InteractiveDistanceWorkflow(cli, prompter);
+    actions =
+        List.of(
+            new InteractiveFileHashAction(cli, prompter),
+            new InteractiveFolderHashAction(cli, prompter),
+            new InteractiveFileComparisonAction(cli, prompter),
+            new InteractiveExitAction(prompter));
   }
 
   /** Keeps displaying the menu until Exit, Ctrl-D, or end of input explicitly ends the session. */
@@ -25,18 +28,19 @@ final class InteractiveShell {
       printMenu();
       final String answer = prompter.answer("Choose an action [1]: ");
       if (answer == null) {
-        return leave();
+        return closeFromEndOfInput();
       }
 
       final String selection = answer.strip().toLowerCase(Locale.ROOT);
-      switch (selection) {
-        case "", "1", "file", "f" -> fileHashWorkflow.run();
-        case "2", "folder", "directory" -> folderHashWorkflow.run();
-        case "3", "distance", "compare", "d", "c" -> distanceWorkflow.run();
-        case "4", "quit", "exit", "q" -> {
-          return leave();
+      final Optional<InteractiveAction> selectedAction = findAction(selection);
+      if (selectedAction.isEmpty()) {
+        prompter.error("Unknown choice. Select one of the displayed actions.");
+      } else {
+        final InteractiveAction action = selectedAction.orElseThrow();
+        action.execute();
+        if (action.closesShell()) {
+          return TlshCli.SUCCESS;
         }
-        default -> prompter.error("Unknown choice. Select 1, 2, 3, or 4.");
       }
       prompter.blankLine();
     }
@@ -53,10 +57,9 @@ final class InteractiveShell {
   /** Uses color only as a visual aid, keeping numeric choices usable in every terminal. */
   private void printMenu() {
     prompter.blankLine();
-    printAction("1", "Hash one file");
-    printAction("2", "Hash a folder");
-    printAction("3", "Compare two digests");
-    printAction("4", "Exit");
+    for (final InteractiveAction action : actions) {
+      printAction(action.key(), action.description());
+    }
     prompter.blankLine();
   }
 
@@ -65,8 +68,13 @@ final class InteractiveShell {
     prompter.line("  " + prompter.style().accent(key) + "  " + description);
   }
 
-  /** An explicitly closed interactive session is successful even if an earlier file was skipped. */
-  private int leave() {
+  /** Finds one command without teaching the shell about action-specific aliases. */
+  private Optional<InteractiveAction> findAction(final String selection) {
+    return actions.stream().filter(action -> action.matches(selection)).findFirst();
+  }
+
+  /** Treats Ctrl-D as the same successful outcome as the explicit Exit command. */
+  private int closeFromEndOfInput() {
     prompter.line(prompter.style().muted("Bye."));
     return TlshCli.SUCCESS;
   }

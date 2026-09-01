@@ -15,8 +15,9 @@ The executable keeps a small command vocabulary while supporting both human and 
 ```text
 tlsh
 tlsh hash PATH...
-tlsh hash [--recursive] [--progress=auto|always|never] PATH...
+tlsh hash [--recursive] [--include-hidden] [--progress=auto|always|never] PATH...
 tlsh hash -
+tlsh compare [--ignore-length] FIRST_FILE SECOND_FILE
 tlsh distance FIRST SECOND
 tlsh distance --ignore-length FIRST SECOND
 ```
@@ -27,8 +28,10 @@ tlsh distance --ignore-length FIRST SECOND
 T1...  path-or-
 ```
 
-`distance` emits only the decimal score. Human explanations belong in help and diagnostics rather
-than standard output, keeping successful output easy to pipe into other programs.
+`compare` and `distance` emit only the decimal score. The former calculates both digests from files,
+while the latter accepts existing digest strings. Human explanations belong in guided presentation,
+help, and diagnostics rather than standard output, keeping successful output easy to pipe into
+other programs.
 
 ## Exit codes
 
@@ -58,8 +61,11 @@ second hashing path. In a redirected process, no-argument execution prints help 
 unattended process never waits for a prompt.
 
 Files from a directory are sorted before hashing. Nested directories require an explicit
-`--recursive` option, and symbolic directories are not followed. These rules make the scope visible
-and prevent accidental cycles. Duplicate filesystem paths are hashed once.
+`--recursive` option, and symbolic directories are not followed. Hidden files and subdirectories
+are skipped by default, with the skipped count included in previews and summaries;
+`--include-hidden` opts into them. An explicitly named hidden file remains explicit input and is not
+silently discarded. These rules make the scope visible and prevent accidental cycles. Duplicate
+filesystem paths are hashed once.
 
 Successful digests and numeric distances remain on standard output. The live progress line,
 diagnostics, and batch summary use standard error. Consequently, presentation can evolve without
@@ -79,6 +85,13 @@ terminal provider is selected at runtime on the Java 25 baseline. The library mo
 dependency-free. See Picocli's
 [official API overview](https://picocli.info/apidocs-all/overview-summary.html) and JLine's
 [LineReader documentation](https://jline.org/docs/line-reader/).
+
+Guided menu entries implement a small Command contract containing their key, description, aliases,
+and behavior. The shell renders and selects commands without knowing workflow-specific classes.
+Path completion uses a Strategy selected by the active prompt: file prompts offer files and
+directories, while folder prompts offer directories only. Picocli commands and JLine actions are
+input adapters over shared hashing and file-comparison use cases; guided hashing no longer invokes
+the Picocli parser recursively.
 
 ## Distribution stages
 
@@ -119,7 +132,8 @@ Native executables are not ready for distribution merely because they compile. A
 
 ## Deferred commands
 
-A file-to-file `compare` command, machine-readable JSON, threshold decisions, and parallel hashing
-are intentionally deferred. Each changes output, resource use, or failure semantics. They should be
-added from concrete workflows rather than making the CLI large before its current contract is
-exercised.
+Machine-readable JSON, threshold decisions, directory-wide similar-file search, and parallel
+hashing are intentionally deferred. Similar-file search requires an explicit score policy and cost
+limit because comparing every pair requires `n * (n - 1) / 2` distance calculations. These features
+should be added from concrete workflows rather than making the CLI large before its current
+contract is exercised.

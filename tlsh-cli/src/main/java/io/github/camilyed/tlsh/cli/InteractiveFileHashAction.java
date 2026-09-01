@@ -3,27 +3,30 @@ package io.github.camilyed.tlsh.cli;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
-/** Collects and validates exactly one file before delegating hashing to {@link HashCommand}. */
-final class InteractiveFileHashWorkflow {
+/** Collects and validates exactly one file before invoking the shared hashing use case. */
+final class InteractiveFileHashAction implements InteractiveAction {
 
   private static final String BACK_HINT = "Leave empty to return to the menu.";
 
   private final TlshCli cli;
   private final InteractivePrompter prompter;
 
-  InteractiveFileHashWorkflow(final TlshCli cli, final InteractivePrompter prompter) {
+  InteractiveFileHashAction(final TlshCli cli, final InteractivePrompter prompter) {
     this.cli = cli;
     this.prompter = prompter;
   }
 
   /** Hashes one selected regular file and never displays folder-specific questions. */
-  void run() {
+  public void execute() {
     prompter.blankLine();
     prompter.heading("Hash one file");
     printPathHints("file");
-    final Optional<Path> selectedPath = prompter.path("File path: ");
+    final Optional<Path> selectedPath =
+        prompter.path("File path: ", PathCompletionMode.FILES_AND_DIRECTORIES);
     if (selectedPath.isEmpty()) {
       return;
     }
@@ -41,7 +44,24 @@ final class InteractiveFileHashWorkflow {
     prompter.line(
         "Hashing " + prompter.style().accent(path.getFileName().toString()) + " · " + size(path));
     prompter.blankLine();
-    cli.execute("hash", "--progress=always", "--no-summary", path.toAbsolutePath().toString());
+    cli.hash(
+        new HashBatchRequest(
+            List.of(path.toAbsolutePath().toString()), false, false, ProgressMode.ALWAYS, false));
+  }
+
+  @Override
+  public String key() {
+    return "1";
+  }
+
+  @Override
+  public String description() {
+    return "Hash one file";
+  }
+
+  @Override
+  public Set<String> aliases() {
+    return Set.of("", "file", "f");
   }
 
   /** Explains both relative paths and the newly available completion key. */

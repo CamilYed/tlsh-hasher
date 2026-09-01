@@ -42,7 +42,7 @@ final class TlshCliTest {
 
     // then
     assertThat(exitCode).isZero();
-    assertThat(output()).contains("Usage: tlsh", "hash", "distance");
+    assertThat(output()).contains("Usage: tlsh", "hash", "compare", "distance");
     assertThat(error()).isEmpty();
   }
 
@@ -139,6 +139,61 @@ final class TlshCliTest {
   }
 
   @Test
+  void shouldCompareTwoFilesUsingBothDistanceModes(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final byte[] firstInput = deterministicInput();
+    final byte[] secondInput = deterministicInput(0xC0FFEE);
+    final Path firstPath = Files.write(directory.resolve("first.bin"), firstInput);
+    final Path secondPath = Files.write(directory.resolve("second.bin"), secondInput);
+    final int distance = Tlsh.hash(firstInput).distanceTo(Tlsh.hash(secondInput));
+    final int distanceIgnoringLength =
+        Tlsh.hash(firstInput).distanceToIgnoringLength(Tlsh.hash(secondInput));
+
+    // when
+    final int includingLengthExitCode =
+        cli(new byte[0]).execute("compare", firstPath.toString(), secondPath.toString());
+
+    // then
+    assertThat(includingLengthExitCode).isZero();
+    assertThat(output()).isEqualTo(distance + System.lineSeparator());
+    assertThat(error()).isEmpty();
+
+    createOutputStreams();
+
+    // when
+    final int ignoringLengthExitCode =
+        cli(new byte[0])
+            .execute("compare", "--ignore-length", firstPath.toString(), secondPath.toString());
+
+    // then
+    assertThat(ignoringLengthExitCode).isZero();
+    assertThat(output()).isEqualTo(distanceIgnoringLength + System.lineSeparator());
+    assertThat(error()).isEmpty();
+  }
+
+  @Test
+  void shouldIdentifyAnIneligibleFileDuringComparison(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final Path validPath = Files.write(directory.resolve("valid.bin"), deterministicInput());
+    final Path ineligiblePath = Files.write(directory.resolve("small.bin"), new byte[32]);
+
+    // when
+    final int exitCode =
+        cli(new byte[0]).execute("compare", validPath.toString(), ineligiblePath.toString());
+
+    // then
+    assertThat(exitCode).isEqualTo(TlshCli.DATA_ERROR);
+    assertThat(output()).isEmpty();
+    assertThat(error())
+        .contains(
+            "tlsh: " + ineligiblePath.toAbsolutePath(),
+            "input is 32 B; TLSH requires at least 256 B")
+        .doesNotContain("Exception", "\tat ");
+  }
+
+  @Test
   void shouldReturnDataErrorWithoutStackTraceForInvalidDigest() {
     // when
     final int exitCode = cli(new byte[0]).execute("distance", "invalid", SECOND_DIGEST);
@@ -177,6 +232,98 @@ final class TlshCliTest {
         .containsExactly(
             Tlsh.hash(input).encoded() + "  " + first, Tlsh.hash(input).encoded() + "  " + second);
     assertThat(error()).contains("✓ 2 files hashed", "8.0 KiB");
+  }
+
+  @Test
+  void shouldSkipHiddenDirectoryEntriesByDefault(@TempDir final Path directory) throws IOException {
+    // given
+    final byte[] input = deterministicInput();
+    final Path visible = Files.write(directory.resolve("visible.bin"), input);
+    final Path hidden = Files.write(directory.resolve(".localized"), new byte[0]);
+
+    // when
+    final int exitCode = cli(new byte[0]).execute("hash", "--progress=never", directory.toString());
+
+    // then
+    assertThat(exitCode).isZero();
+    assertThat(output())
+        .isEqualTo(Tlsh.hash(input).encoded() + "  " + visible + System.lineSeparator())
+        .doesNotContain(hidden.toString());
+    assertThat(error()).contains("✓ 1 file hashed", "1 hidden entry skipped");
+  }
+
+  @Test
+  void shouldIncludeHiddenDirectoryEntriesWhenRequested(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final byte[] input = deterministicInput();
+    final Path visible = Files.write(directory.resolve("visible.bin"), input);
+    final Path hidden = Files.write(directory.resolve(".localized"), new byte[0]);
+
+    // when
+    final int exitCode =
+        cli(new byte[0])
+            .execute("hash", "--progress=never", "--include-hidden", directory.toString());
+
+    // then
+    assertThat(exitCode).isEqualTo(TlshCli.DATA_ERROR);
+    assertThat(output()).contains(visible.toString()).doesNotContain(hidden.toString());
+    assertThat(error())
+        .contains(
+            "Completed with 1 failed file",
+            "✗ " + hidden,
+            "input is 0 B; TLSH requires at least 256 B")
+        .doesNotContain("hidden entry skipped");
+  }
+
+  @Test
+  void shouldPruneHiddenDirectoriesUnlessTheyAreIncluded(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final byte[] input = deterministicInput();
+    final Path visible = Files.write(directory.resolve("visible.bin"), input);
+    final Path hiddenDirectory = Files.createDirectory(directory.resolve(".private"));
+    final Path hidden = Files.write(hiddenDirectory.resolve("hidden.bin"), input);
+
+    // when
+    final int defaultExitCode =
+        cli(new byte[0]).execute("hash", "--progress=never", "--recursive", directory.toString());
+
+    // then
+    assertThat(defaultExitCode).isZero();
+    assertThat(output()).contains(visible.toString()).doesNotContain(hidden.toString());
+    assertThat(error()).contains("1 hidden entry skipped");
+
+    createOutputStreams();
+
+    // when
+    final int includedExitCode =
+        cli(new byte[0])
+            .execute(
+                "hash",
+                "--progress=never",
+                "--recursive",
+                "--include-hidden",
+                directory.toString());
+
+    // then
+    assertThat(includedExitCode).isZero();
+    assertThat(output()).contains(visible.toString(), hidden.toString());
+    assertThat(error()).doesNotContain("hidden entry skipped");
+  }
+
+  @Test
+  void shouldAlwaysHashAnExplicitlySelectedHiddenFile(@TempDir final Path directory)
+      throws IOException {
+    // given
+    final Path hidden = Files.write(directory.resolve(".selected"), new byte[0]);
+
+    // when
+    final int exitCode = cli(new byte[0]).execute("hash", hidden.toString());
+
+    // then
+    assertThat(exitCode).isEqualTo(TlshCli.DATA_ERROR);
+    assertThat(error()).contains("✗ " + hidden, "input is 0 B; TLSH requires at least 256 B");
   }
 
   @Test
@@ -284,6 +431,43 @@ final class TlshCliTest {
   }
 
   @Test
+  void shouldCompareTwoFilesInteractively(@TempDir final Path directory) throws IOException {
+    // given
+    final byte[] firstInput = deterministicInput();
+    final byte[] secondInput = deterministicInput(0xC0FFEE);
+    final Path firstPath = Files.write(directory.resolve("first.bin"), firstInput);
+    final Path secondPath = Files.write(directory.resolve("second.bin"), secondInput);
+    final int expectedDistance = Tlsh.hash(firstInput).distanceTo(Tlsh.hash(secondInput));
+    final ScriptedTerminal terminal =
+        new ScriptedTerminal("3", firstPath.toString(), secondPath.toString(), "", "4");
+
+    // when
+    final int exitCode = interactiveCli(new byte[0], terminal).execute();
+
+    // then
+    assertThat(exitCode).isZero();
+    assertThat(output())
+        .contains(
+            "Compare two files",
+            "Comparison",
+            "Distance  " + expectedDistance,
+            "Length    included",
+            firstPath.toString(),
+            secondPath.toString(),
+            Tlsh.hash(firstInput).encoded(),
+            Tlsh.hash(secondInput).encoded(),
+            "Smaller distances indicate greater similarity",
+            "Bye.");
+    assertThat(terminal.prompts())
+        .containsExactly(
+            "Choose an action [1]: ",
+            "First file: ",
+            "Second file: ",
+            "Ignore input-length difference? [y/N]: ",
+            "Choose an action [1]: ");
+  }
+
+  @Test
   void shouldExplainHowToIncludeFilesFromNestedOnlyDirectory(@TempDir final Path directory)
       throws IOException {
     // given
@@ -380,8 +564,12 @@ final class TlshCliTest {
   }
 
   private static byte[] deterministicInput() {
+    return deterministicInput(0x5EEDL);
+  }
+
+  private static byte[] deterministicInput(final long seed) {
     final byte[] input = new byte[4_096];
-    new Random(0x5EEDL).nextBytes(input);
+    new Random(seed).nextBytes(input);
     return input;
   }
 

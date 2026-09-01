@@ -42,7 +42,8 @@ final class HashBatchReporter {
             + " hashed · "
             + HumanUnits.bytes(summary.processedBytes())
             + " · "
-            + HumanUnits.duration(summary.elapsedNanoseconds()));
+            + HumanUnits.duration(summary.elapsedNanoseconds())
+            + hiddenSuffix(summary));
   }
 
   /** Puts the ratio before secondary measurements so partial success is immediately visible. */
@@ -61,7 +62,8 @@ final class HashBatchReporter {
             + " hashed · "
             + HumanUnits.bytes(summary.processedBytes())
             + " · "
-            + HumanUnits.duration(summary.elapsedNanoseconds()));
+            + HumanUnits.duration(summary.elapsedNanoseconds())
+            + hiddenSuffix(summary));
   }
 
   /** Repeats failures at the bottom where they cannot be lost among successful digest lines. */
@@ -82,5 +84,15 @@ final class HashBatchReporter {
   /** Chooses a singular or plural noun without introducing a formatting dependency. */
   private static String pluralize(final int count, final String singular, final String plural) {
     return count == 1 ? singular : plural;
+  }
+
+  /** Makes an intentional filtering decision visible without treating it as a failure. */
+  private String hiddenSuffix(final HashBatchSummary summary) {
+    final int skipped = summary.skippedHiddenEntries();
+    return skipped == 0
+        ? ""
+        : " · "
+            + style.muted(
+                skipped + pluralize(skipped, " hidden entry skipped", " hidden entries skipped"));
   }
 }

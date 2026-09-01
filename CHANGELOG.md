@@ -24,9 +24,13 @@ All notable changes to this project are documented here. The format loosely foll
   keep the interactive session open across operations.
 - Add terminal colors, line editing, history, and Tab filesystem completion with JLine.
 - Collect per-file failures into a readable final batch report with successful and attempted counts.
+- Compare two files directly in command and guided modes while retaining numeric script output.
+- Skip hidden directory entries by default, report the skipped count, and add `--include-hidden`.
 
 ### Changed
 
 - Remove per-window array allocations from the byte-processing hot path.
 - Make distance calculation allocation-free without exposing mutable digest state.
 - Split the interactive CLI into focused menu, prompt, path, workflow, and reporting components.
+- Model guided menu entries as commands, select path completion as a strategy, and share hashing and
+  file-comparison use cases between Picocli and JLine adapters.

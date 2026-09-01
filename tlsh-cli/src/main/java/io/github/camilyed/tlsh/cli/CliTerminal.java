@@ -14,8 +14,8 @@ interface CliTerminal extends AutoCloseable {
   /** Displays a prompt and reads one answer with normal line editing but no path suggestions. */
   String readLine(String prompt);
 
-  /** Displays a prompt with filesystem completion enabled for the Tab key. */
-  default String readPath(final String prompt) {
+  /** Displays a prompt with the selected filesystem completion strategy enabled for Tab. */
+  default String readPath(final String prompt, final PathCompletionMode completionMode) {
     return readLine(prompt);
   }
 
