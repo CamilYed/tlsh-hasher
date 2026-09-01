@@ -31,13 +31,26 @@ The `gc` profiler reports allocation information in addition to timing. JMH prin
 readable report to the console and writes the machine-readable result to
 `tlsh-benchmarks/build/results/jmh/results.json`.
 
-The benchmarks measure complete `Tlsh.hash(byte[])` and `Tlsh.hash(InputStream)` calls for 256-byte,
-4 KiB, and 1 MiB inputs. Input generation happens once before measurement, and every result is
-consumed so the JVM cannot discard the hashing work as unused. The stream benchmark resets and
-reuses an in-memory `ByteArrayInputStream`: it measures the library's stream read loop and internal
-buffer, not stream construction, filesystem caching, or storage performance. Compare results only
-when the JDK, hardware, power mode, JMH options, and other relevant environment details are recorded
-alongside them.
+The benchmarks measure complete `Tlsh.hash(byte[])`, `Tlsh.hash(InputStream)`, and `Tlsh.hash(Path)`
+calls for 256-byte, 4 KiB, and 1 MiB inputs. Input generation happens once before measurement, and
+every result is consumed so the JVM cannot discard the hashing work as unused.
+
+The stream benchmark resets and reuses an in-memory `ByteArrayInputStream`: it measures the
+library's stream read loop and internal buffer, not stream construction or filesystem performance.
+The path benchmark creates its file before the trial but opens, reads, and closes it during every
+invocation. Repeated reads are expected to use the operating-system filesystem cache, so this is a
+warm-cache API measurement rather than a claim about physical storage throughput.
+
+Run only the path benchmark with allocation profiling:
+
+```shell
+./gradlew :tlsh-benchmarks:jmh \
+  -Pjmh.includes=TlshPathBenchmark \
+  -Pjmh.profilers=gc
+```
+
+Compare results only when the JDK, hardware, power mode, JMH options, and other relevant environment
+details are recorded alongside them.
 
 Sizes use binary units: 1 KiB is 1,024 bytes and 1 MiB is 1,048,576 bytes. The decimal unit 1 MB is
 1,000,000 bytes, so it would not accurately describe the largest benchmark parameter.
@@ -46,3 +59,7 @@ Sizes use binary units: 1 KiB is 1,024 bytes and 1 MiB is 1,048,576 bytes. The d
 
 - [2026-08-31: removing per-window allocations](results/2026-08-31-hot-path-refactor.md) compares
   the initial readable implementation with its allocation-free byte-processing hot path.
+- [2026-09-01: byte array and input stream](results/2026-09-01-input-stream-overhead.md) measures
+  the fixed cost of the convenience stream API.
+- [2026-09-01: warm-cache path hashing](results/2026-09-01-path-warm-cache.md) isolates the
+  additional cost of opening and closing a filesystem path for every hash operation.

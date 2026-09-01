@@ -18,7 +18,7 @@ not assumptions about where the hot path might be.
 - [x] Add a non-published `tlsh-benchmarks` JMH module.
 - [x] Measure complete hashing for `byte[]` inputs.
 - [x] Measure complete hashing for `InputStream` inputs.
-- [ ] Measure complete hashing for `Path` inputs.
+- [x] Measure warm-cache complete hashing for `Path` inputs.
 - Measure digest parsing and distance calculation separately from hashing.
 - Use deterministic generated inputs for repeatable sizes and selected official corpus files for a
   realistic secondary workload.

@@ -1,11 +1,9 @@
-import com.diffplug.gradle.spotless.SpotlessExtension
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.compile.JavaCompile
 
 plugins {
     java
     alias(libs.plugins.jmh)
-    alias(libs.plugins.spotless)
 }
 
 description = "Non-published JMH benchmarks for TLSH Hasher"
@@ -18,28 +16,6 @@ java {
 
 dependencies {
     implementation(project(":"))
-}
-
-extensions.configure<SpotlessExtension> {
-    java {
-        googleJavaFormat()
-        removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
-    }
-
-    kotlinGradle {
-        target("*.gradle.kts")
-        ktlint()
-        trimTrailingWhitespace()
-        endWithNewline()
-    }
-
-    format("misc") {
-        target("*.md")
-        trimTrailingWhitespace()
-        endWithNewline()
-    }
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -79,5 +55,4 @@ jmh {
 
 tasks.check {
     dependsOn(tasks.jmhClasses)
-    dependsOn(tasks.spotlessCheck)
 }

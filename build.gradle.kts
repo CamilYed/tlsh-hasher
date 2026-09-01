@@ -112,6 +112,7 @@ configurations.configureEach {
 
 extensions.configure<SpotlessExtension> {
     java {
+        target("src/**/*.java", "tlsh-benchmarks/src/**/*.java")
         googleJavaFormat()
         removeUnusedImports()
         trimTrailingWhitespace()
@@ -119,14 +120,22 @@ extensions.configure<SpotlessExtension> {
     }
 
     kotlinGradle {
-        target("*.gradle.kts")
+        target("*.gradle.kts", "tlsh-benchmarks/*.gradle.kts")
         ktlint()
         trimTrailingWhitespace()
         endWithNewline()
     }
 
     format("misc") {
-        target("*.md", ".editorconfig", ".gitignore", "gradle.properties", "gradle/**/*.toml")
+        target(
+            "*.md",
+            ".editorconfig",
+            ".gitignore",
+            "gradle.properties",
+            "gradle/**/*.toml",
+            "tlsh-benchmarks/**/*.md",
+            "tlsh-benchmarks/**/*.svg",
+        )
         trimTrailingWhitespace()
         endWithNewline()
     }

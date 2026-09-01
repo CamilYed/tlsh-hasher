@@ -44,7 +44,7 @@ public class TlshHashBenchmark {
   /** Creates the deterministic input and reusable stream outside the measured benchmark methods. */
   @Setup(Level.Trial)
   public void createInput() {
-    input = deterministicBytes(inputSize);
+    input = DeterministicInput.bytes(inputSize);
     inputStream = new ByteArrayInputStream(input);
   }
 
@@ -73,17 +73,5 @@ public class TlshHashBenchmark {
   public void hashInputStream(final Blackhole blackhole) throws IOException {
     inputStream.reset();
     blackhole.consume(Tlsh.hash(inputStream));
-  }
-
-  private static byte[] deterministicBytes(final int size) {
-    final byte[] bytes = new byte[size];
-    int state = 0x6D2B79F5;
-    for (int index = 0; index < bytes.length; index++) {
-      state ^= state << 13;
-      state ^= state >>> 17;
-      state ^= state << 5;
-      bytes[index] = (byte) state;
-    }
-    return bytes;
   }
 }
