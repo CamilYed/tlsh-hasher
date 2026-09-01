@@ -25,7 +25,7 @@ final class TlshCompatibilityTest {
 
     for (final CompatibilityVector vector : vectors) {
       final TlshAccumulator accumulator = newAccumulator();
-      final byte[] input = deterministicBytes(vector.inputSize());
+      final byte[] input = DeterministicTestInput.bytes(vector.inputSize());
 
       // when
       for (final byte value : input) {
@@ -51,18 +51,6 @@ final class TlshCompatibilityTest {
             new HistogramCodePacker(),
             new QuartileRatioEncoder()),
         new TlshDigestEligibilityChecker());
-  }
-
-  private static byte[] deterministicBytes(final int size) {
-    final byte[] input = new byte[size];
-    int state = 0x6D2B79F5 ^ size;
-    for (int index = 0; index < input.length; index++) {
-      state ^= state << 13;
-      state ^= state >>> 17;
-      state ^= state << 5;
-      input[index] = (byte) state;
-    }
-    return input;
   }
 
   private record CompatibilityVector(int inputSize, String expectedDigest) {}

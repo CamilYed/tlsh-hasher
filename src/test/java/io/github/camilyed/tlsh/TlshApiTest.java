@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatIOException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -16,7 +15,7 @@ final class TlshApiTest {
   @Test
   void shouldHashCompleteByteArrayThroughPublicFacade() {
     // given
-    final byte[] input = deterministicBytes(1_000);
+    final byte[] input = DeterministicTestInput.bytes(1_000);
 
     // when
     final TlshDigest digest = Tlsh.hash(input);
@@ -30,7 +29,7 @@ final class TlshApiTest {
   @Test
   void shouldProduceSameDigestForDifferentChunkBoundaries() {
     // given
-    final byte[] input = deterministicBytes(4_096);
+    final byte[] input = DeterministicTestInput.bytes(4_096);
     final TlshDigest expected = Tlsh.hash(input);
     final TlshHasher hasher = Tlsh.newHasher();
 
@@ -49,7 +48,7 @@ final class TlshApiTest {
   @Test
   void shouldProduceSameDigestWhenBytesAreAddedIndividually() {
     // given
-    final byte[] input = deterministicBytes(1_000);
+    final byte[] input = DeterministicTestInput.bytes(1_000);
     final TlshDigest expected = Tlsh.hash(input);
     final TlshHasher hasher = Tlsh.newHasher();
 
@@ -65,7 +64,7 @@ final class TlshApiTest {
   @Test
   void shouldIgnoreEmptyUpdatesAndKeepFinishAsANonDestructiveSnapshot() {
     // given
-    final byte[] input = deterministicBytes(1_000);
+    final byte[] input = DeterministicTestInput.bytes(1_000);
     final TlshHasher hasher = Tlsh.newHasher();
 
     // when
@@ -83,7 +82,7 @@ final class TlshApiTest {
   @Test
   void shouldHashInputStreamWithoutClosingIt() throws IOException {
     // given
-    final byte[] input = deterministicBytes(4_096);
+    final byte[] input = DeterministicTestInput.bytes(4_096);
     final CloseTrackingInputStream inputStream = new CloseTrackingInputStream(input);
 
     // when
@@ -113,9 +112,9 @@ final class TlshApiTest {
   void shouldHashFileWithoutLoadingItAsACompleteByteArray(@TempDir final Path temporaryDirectory)
       throws IOException {
     // given
-    final byte[] input = deterministicBytes(4_096);
-    final Path inputFile = temporaryDirectory.resolve("input.bin");
-    Files.write(inputFile, input);
+    final byte[] input = DeterministicTestInput.bytes(4_096);
+    final Path inputFile =
+        DeterministicTestInput.write(temporaryDirectory.resolve("input.bin"), input.length);
 
     // when
     final TlshDigest digest = Tlsh.hash(inputFile);
@@ -131,18 +130,6 @@ final class TlshApiTest {
 
     // then
     assertThatIOException().isThrownBy(() -> Tlsh.hash(missingFile));
-  }
-
-  private static byte[] deterministicBytes(final int size) {
-    final byte[] input = new byte[size];
-    int state = 0x6D2B79F5 ^ size;
-    for (int index = 0; index < input.length; index++) {
-      state ^= state << 13;
-      state ^= state >>> 17;
-      state ^= state << 5;
-      input[index] = (byte) state;
-    }
-    return input;
   }
 
   private static final class CloseTrackingInputStream extends ByteArrayInputStream {

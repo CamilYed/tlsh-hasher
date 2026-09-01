@@ -170,8 +170,10 @@ The tests themselves are part of this repository:
 - [`OfficialTlshCorpusCompatibilityTest`](src/test/java/io/github/camilyed/tlsh/OfficialTlshCorpusCompatibilityTest.java)
   hashes real files from the official corpus and checks their complete digests and distance scores.
 
-The deterministic tests always run locally and in CI. The real corpus files are intentionally not
-copied into this repository. The [CI workflow](.github/workflows/ci.yml) checks out the official
+The deterministic tests always run locally and in CI. A shared test helper creates both in-memory
+inputs and temporary files from a fixed algorithm, so those tests need neither committed binary
+fixtures nor network access. The real corpus files are intentionally not copied into this
+repository. The [CI workflow](.github/workflows/ci.yml) checks out the official
 TLSH repository at the immutable `5.0.0` tag into its temporary workspace and supplies those files
 to `OfficialTlshCorpusCompatibilityTest`. That test is skipped locally when the fixture-directory
 property is absent, while CI always configures it.
