@@ -77,6 +77,47 @@ final class InteractiveShellTest extends CliTestSupport {
   }
 
   @Test
+  void shouldRejectAFileSelectedForTheFolderWorkflow(@TempDir final Path directory)
+      throws IOException {
+    final Path inputPath = Files.write(directory.resolve("input.bin"), deterministicInput());
+    final ScriptedTerminal terminal = new ScriptedTerminal("2", inputPath.toString(), "5");
+
+    final int exitCode = interactiveCli(new byte[0], terminal).execute();
+
+    assertThat(exitCode).isZero();
+    assertThat(output())
+        .contains("That path is a file. Choose 'Hash one file' from the menu instead.", "Bye.")
+        .doesNotContain(Tlsh.hash(deterministicInput()).encoded());
+    assertThat(error()).isEmpty();
+  }
+
+  @Test
+  void shouldExplainASelectionContainingOnlyHiddenFiles(@TempDir final Path directory)
+      throws IOException {
+    Files.write(directory.resolve(".hidden.bin"), deterministicInput());
+    final ScriptedTerminal terminal = new ScriptedTerminal("2", directory.toString(), "1", "5");
+
+    final int exitCode = interactiveCli(new byte[0], terminal).execute();
+
+    assertThat(exitCode).isZero();
+    assertThat(output()).contains("No visible files found · 1 hidden entry skipped.", "Bye.");
+    assertThat(error()).isEmpty();
+  }
+
+  @Test
+  void shouldRejectAnUnknownFolderScope(@TempDir final Path directory) throws IOException {
+    Files.write(directory.resolve("input.bin"), deterministicInput());
+    final ScriptedTerminal terminal =
+        new ScriptedTerminal("2", directory.toString(), "unexpected", "5");
+
+    final int exitCode = interactiveCli(new byte[0], terminal).execute();
+
+    assertThat(exitCode).isZero();
+    assertThat(output()).contains("Unknown scope. Choose 1 or 2.", "Bye.");
+    assertThat(error()).isEmpty();
+  }
+
+  @Test
   void shouldCompareTwoFilesInteractively(@TempDir final Path directory) throws IOException {
     final byte[] firstInput = deterministicInput();
     final byte[] secondInput = deterministicInput(0xC0FFEE);
@@ -140,6 +181,23 @@ final class InteractiveShellTest extends CliTestSupport {
             "Ignore input-length difference? [y/N]: ",
             "Start similarity scan? [Y/n]: ",
             "Choose an action [1]: ");
+  }
+
+  @Test
+  void shouldRejectAnInvalidInteractiveSimilarityDistance(@TempDir final Path directory)
+      throws IOException {
+    Files.write(directory.resolve("first.bin"), deterministicInput());
+    Files.write(directory.resolve("second.bin"), deterministicInput(0xC0FFEE));
+    final ScriptedTerminal terminal =
+        new ScriptedTerminal("4", directory.toString(), "1", "not-a-number", "5");
+
+    final int exitCode = interactiveCli(new byte[0], terminal).execute();
+
+    assertThat(exitCode).isZero();
+    assertThat(output())
+        .contains("Distance must be a whole number equal to or greater than zero.", "Bye.")
+        .doesNotContain("Start similarity scan?");
+    assertThat(error()).isEmpty();
   }
 
   @Test

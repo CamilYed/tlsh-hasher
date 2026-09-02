@@ -1,9 +1,5 @@
 package io.github.camilyed.tlsh.cli;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
@@ -12,10 +8,12 @@ final class InteractiveSimilarityAction implements InteractiveAction {
 
   private final TlshCli cli;
   private final InteractivePrompter prompter;
+  private final InteractiveFolderSelector folderSelector;
 
   InteractiveSimilarityAction(final TlshCli cli, final InteractivePrompter prompter) {
     this.cli = cli;
     this.prompter = prompter;
+    folderSelector = new InteractiveFolderSelector(prompter);
   }
 
   /** Collects the directory and threshold, previews the work, and asks before starting it. */
@@ -23,63 +21,31 @@ final class InteractiveSimilarityAction implements InteractiveAction {
   public void execute() {
     prompter.blankLine();
     prompter.heading("Find similar files");
-    printPathHints();
-    final Optional<Path> selectedPath =
-        prompter.path("Folder path: ", PathCompletionMode.DIRECTORIES_ONLY);
-    if (selectedPath.isEmpty()) {
+    final Optional<InteractiveFolderSelection> selected =
+        folderSelector.select(
+            "That path is a file. Similarity scanning needs a folder with at least two files.");
+    if (selected.isEmpty()) {
       return;
     }
 
-    final Path directory = selectedPath.orElseThrow();
-    if (!validDirectory(directory)) {
-      return;
-    }
-    final Optional<Boolean> recursive = selectScope();
-    if (recursive.isEmpty()) {
-      return;
-    }
-    final Optional<Integer> maximumDistance = selectMaximumDistance();
-    if (maximumDistance.isEmpty()) {
-      return;
-    }
-    final String ignoreLengthAnswer = prompter.answer("Ignore input-length difference? [y/N]: ");
-    if (ignoreLengthAnswer == null) {
+    final Optional<SimilarityPreferences> preferences = selectPreferences();
+    if (preferences.isEmpty()) {
       return;
     }
 
-    final HashInputDiscovery.Result preview =
-        new HashInputDiscovery()
-            .discover(List.of(directory.toString()), recursive.orElseThrow(), false);
-    if (preview.inputs().isEmpty()) {
-      printEmptyPreview(preview);
+    final InteractiveFolderSelection selection = selected.orElseThrow();
+    if (!withinSafetyLimit(selection)) {
       return;
     }
-    final long comparisons = SimilarityScanUseCase.pairCount(preview.inputs().size());
-    if (comparisons > SimilarCommand.DEFAULT_MAXIMUM_COMPARISONS) {
-      prompter.error(
-          "This folder requires "
-              + comparisons
-              + " comparisons; the interactive safety limit is "
-              + SimilarCommand.DEFAULT_MAXIMUM_COMPARISONS
-              + ". Use `tlsh similar --max-comparisons N` to raise it deliberately.");
-      return;
-    }
-
-    printPreview(preview, comparisons, maximumDistance.orElseThrow());
+    final SimilarityPreferences chosenPreferences = preferences.orElseThrow();
+    printPreview(selection, chosenPreferences.maximumDistance());
     if (!prompter.yesByDefault(prompter.answer("Start similarity scan? [Y/n]: "))) {
       prompter.line(prompter.style().muted("Cancelled."));
       return;
     }
 
     prompter.blankLine();
-    cli.findSimilar(
-        new SimilarityScanRequest(
-            directory.toAbsolutePath(),
-            recursive.orElseThrow(),
-            false,
-            maximumDistance.orElseThrow(),
-            prompter.yes(ignoreLengthAnswer),
-            SimilarCommand.DEFAULT_MAXIMUM_COMPARISONS));
+    cli.findSimilar(toRequest(selection, chosenPreferences));
   }
 
   @Override
@@ -97,46 +63,18 @@ final class InteractiveSimilarityAction implements InteractiveAction {
     return Set.of("similar", "scan", "find");
   }
 
-  /** Rejects files and missing paths with a workflow-specific correction. */
-  private boolean validDirectory(final Path directory) {
-    if (Files.isRegularFile(directory)) {
-      prompter.error(
-          "That path is a file. Similarity scanning needs a folder with at least two files.");
-      return false;
-    }
-    if (!Files.isDirectory(directory)) {
-      prompter.error("No directory exists at: " + directory);
-      return false;
-    }
-    return true;
-  }
-
-  /** Shows completion and working-directory hints before the path prompt. */
-  private void printPathHints() {
-    prompter.hint("Current directory: " + Path.of("").toAbsolutePath());
-    prompter.hint(
-        "Type a path, drag a folder here, or press Tab to complete it. "
-            + "Leave empty to return to the menu.");
-  }
-
-  /** Selects shallow or recursive discovery while refusing unknown answers. */
-  private Optional<Boolean> selectScope() {
-    prompter.blankLine();
-    prompter.line("  " + prompter.style().accent("1") + "  Files directly in this folder");
-    prompter.line("  " + prompter.style().accent("2") + "  This folder and every nested folder");
-    final String answer = prompter.answer("Choose scope [1]: ");
-    if (answer == null) {
+  /** Collects the pair-selection threshold and the desired distance mode. */
+  private Optional<SimilarityPreferences> selectPreferences() {
+    final Optional<Integer> maximumDistance = selectMaximumDistance();
+    if (maximumDistance.isEmpty()) {
       return Optional.empty();
     }
-    final String scope = answer.strip().toLowerCase(Locale.ROOT);
-    if (scope.isEmpty() || "1".equals(scope) || "current".equals(scope)) {
-      return Optional.of(false);
+    final String ignoreLengthAnswer = prompter.answer("Ignore input-length difference? [y/N]: ");
+    if (ignoreLengthAnswer == null) {
+      return Optional.empty();
     }
-    if ("2".equals(scope) || "recursive".equals(scope) || "r".equals(scope)) {
-      return Optional.of(true);
-    }
-    prompter.error("Unknown scope. Choose 1 or 2.");
-    return Optional.empty();
+    return Optional.of(
+        new SimilarityPreferences(maximumDistance.orElseThrow(), prompter.yes(ignoreLengthAnswer)));
   }
 
   /** Parses a nonnegative distance; zero is intentionally the safest default. */
@@ -160,11 +98,26 @@ final class InteractiveSimilarityAction implements InteractiveAction {
     return Optional.empty();
   }
 
+  /** Refuses a broad scan unless the explicit command raises the comparison guardrail. */
+  private boolean withinSafetyLimit(final InteractiveFolderSelection selection) {
+    final long comparisons = selection.comparisonCount();
+    if (comparisons <= SimilarCommand.DEFAULT_MAXIMUM_COMPARISONS) {
+      return true;
+    }
+    prompter.error(
+        "This folder requires "
+            + comparisons
+            + " comparisons; the interactive safety limit is "
+            + SimilarCommand.DEFAULT_MAXIMUM_COMPARISONS
+            + ". Use `tlsh similar --max-comparisons N` to raise it deliberately.");
+    return false;
+  }
+
   /** Displays both file-reading work and the all-pairs comparison cost. */
-  private void printPreview(
-      final HashInputDiscovery.Result preview, final long comparisons, final int maximumDistance) {
+  private void printPreview(final InteractiveFolderSelection selection, final int maximumDistance) {
     prompter.blankLine();
-    final int fileCount = preview.inputs().size();
+    final int fileCount = selection.inputs().size();
+    final long comparisons = selection.comparisonCount();
     prompter.line(
         "Found "
             + prompter.style().accent(fileCount + pluralize(fileCount, " file", " files"))
@@ -174,45 +127,29 @@ final class InteractiveSimilarityAction implements InteractiveAction {
                 .accent(comparisons + pluralize(comparisons, " comparison", " comparisons"))
             + " · maximum distance "
             + prompter.style().accent(Integer.toString(maximumDistance))
-            + hiddenPreviewSuffix(preview.skippedHiddenEntries()));
+            + folderSelector.hiddenPreviewSuffix(selection));
     if (maximumDistance == 0) {
       prompter.hint("Distance 0 means the same TLSH digest, not proof of identical bytes.");
     }
   }
 
-  /** Explains discovery failures or a folder with no visible files at the selected depth. */
-  private void printEmptyPreview(final HashInputDiscovery.Result preview) {
-    for (final HashInputDiscovery.Failure failure : preview.failures()) {
-      prompter.error(failure.inputName() + ": " + failure.detail());
-    }
-    if (preview.failures().isEmpty()) {
-      prompter.line(
-          prompter
-              .style()
-              .muted(
-                  "No visible files found"
-                      + hiddenPreviewSuffix(preview.skippedHiddenEntries())
-                      + "."));
-    }
+  /** Converts guided choices into the same application request used by Picocli. */
+  private static SimilarityScanRequest toRequest(
+      final InteractiveFolderSelection selection, final SimilarityPreferences preferences) {
+    return new SimilarityScanRequest(
+        selection.directory().toAbsolutePath(),
+        selection.recursive(),
+        false,
+        preferences.maximumDistance(),
+        preferences.ignoreLength(),
+        SimilarCommand.DEFAULT_MAXIMUM_COMPARISONS);
   }
 
-  /** Exposes hidden-file filtering in the preview instead of silently omitting entries. */
-  private String hiddenPreviewSuffix(final int skippedHiddenEntries) {
-    return skippedHiddenEntries == 0
-        ? ""
-        : " · "
-            + prompter
-                .style()
-                .muted(
-                    skippedHiddenEntries
-                        + pluralize(
-                            skippedHiddenEntries,
-                            " hidden entry skipped",
-                            " hidden entries skipped"));
-  }
-
-  /** Selects singular grammar for both integer and long counters. */
+  /** Chooses singular or plural wording for a counter. */
   private static String pluralize(final long count, final String singular, final String plural) {
     return count == 1L ? singular : plural;
   }
+
+  /** Immutable answers that control which pairs qualify as a match. */
+  private record SimilarityPreferences(int maximumDistance, boolean ignoreLength) {}
 }
