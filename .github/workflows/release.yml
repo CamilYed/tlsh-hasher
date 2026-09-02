@@ -135,7 +135,15 @@ jobs:
             | LC_ALL=C sort \
             | zip -@ "$BUNDLE"
 
-          test "$(unzip -Z1 "$BUNDLE" | wc -l | tr -d ' ')" -eq 10
+          test "$(unzip -Z1 "$BUNDLE" | grep -Ec '\.jar$')" -eq 3
+          test "$(unzip -Z1 "$BUNDLE" | grep -Ec '\.pom$')" -eq 1
+          test "$(unzip -Z1 "$BUNDLE" | grep -Ec '\.module$')" -eq 1
+          test "$(unzip -Z1 "$BUNDLE" | grep -Ec '\.asc$')" -eq 5
+          test "$(unzip -Z1 "$BUNDLE" | grep -Ec '\.md5$')" -eq 5
+          test "$(unzip -Z1 "$BUNDLE" | grep -Ec '\.sha1$')" -eq 5
+          test "$(unzip -Z1 "$BUNDLE" | grep -Ec '\.sha256$')" -eq 5
+          test "$(unzip -Z1 "$BUNDLE" | grep -Ec '\.sha512$')" -eq 5
+          test "$(unzip -Z1 "$BUNDLE" | wc -l | tr -d ' ')" -eq 30
           if unzip -Z1 "$BUNDLE" | grep -v "^$EXPECTED_PATH/" | grep -q .; then
             echo "Bundle contains entries outside $EXPECTED_PATH."
             exit 1
