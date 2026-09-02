@@ -1,12 +1,13 @@
 # Release readiness
 
-This project remains intentionally unpublished. The checklist records what has been verified
-locally and what must still be completed before creating a version tag or public artifact.
+Version `0.1.0` has been published to Maven Central. This document records the checks performed for
+that release and the safeguards retained for future releases.
 
-## Verified snapshot artifacts
+## Verified release artifacts
 
-The `0.1.0-SNAPSHOT` Maven publication has been generated into the local
-`build/staging-deploy` repository and inspected without contacting a remote publishing service.
+The `0.1.0` Maven publication was generated into the local `build/staging-deploy` repository,
+signed, validated by the Central Publisher Portal, and published under the coordinates
+`io.github.camilyed:tlsh-hasher:0.1.0`.
 
 - The binary JAR contains `module-info.class` and exports only `io.github.camilyed.tlsh`.
 - The module has no runtime dependency beyond the mandated `java.base` module.
@@ -29,6 +30,13 @@ The local staging command is:
 
 This command writes only under `build`; it does not publish externally. Signing is intentionally
 skipped for this local repository.
+
+The published POM, binary JAR, source JAR, and Javadoc JAR were retrieved successfully from the
+public Maven Central repository. A clean external Gradle project then resolved version `0.1.0`
+through `mavenCentral()`, compiled as a separate named JPMS module, and calculated a digest at
+runtime. The binary JAR rebuilt from the tagged sources was byte-for-byte identical to the public
+artifact; both had SHA-256
+`6d3e5284deb4e22ab579f1aa27553295c10d8368cd86b98b42333a40fc045f0d`.
 
 The manually triggered `Release dry run` GitHub Actions workflow performs the complete test suite,
 creates a non-snapshot signed staging repository, verifies every detached signature, and uploads a
@@ -73,10 +81,10 @@ distributed through `keyserver.ubuntu.com` and is verified as downloadable by fi
 the `SIGNING_KEY` and `SIGNING_PASSWORD` repository secrets; neither value is stored in Git. An
 encrypted private-key backup and the revocation certificate must remain outside the repository.
 
-## Required before publication
+## Required for future releases
 
-- Stabilize the public construction API after the implementation-module decision.
-- Decide the final artifact IDs and JPMS module names before the first non-snapshot release.
+- Stabilize the public construction API before `1.0.0` after the implementation-module decision.
+- Decide artifact IDs and JPMS module names before publishing any additional modules.
 - Verify generated signatures and all files in the final staging repository.
 - Test consumption with both Gradle and Maven using the final release coordinates.
 - Run the complete compatibility suite, including the official TLSH 5.0.0 corpus.

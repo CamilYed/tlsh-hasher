@@ -6,7 +6,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.camilyed/tlsh-hasher?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.camilyed/tlsh-hasher)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-25-blue.svg)](https://openjdk.org/projects/jdk/25/)
-[![Status](https://img.shields.io/badge/status-functional%20%2F%20pre--release-orange.svg)](#status)
+[![Status](https://img.shields.io/badge/status-0.1.0%20home%20lab-purple.svg)](#status)
 
 An educational Java implementation of TLSH (Trend Locality Sensitive Hash), developed as a home
 lab for learning the algorithm from first principles and experimenting with clear Java API design.
@@ -22,6 +22,7 @@ buckets and a one-byte checksum.
 
 - [Status](#status)
 - [Requirements](#requirements)
+- [Installation](#installation)
 - [Usage](#usage)
 - [Command-line application](#command-line-application)
 - [Complete CLI guide](docs/cli.md)
@@ -34,17 +35,36 @@ buckets and a one-byte checksum.
 
 ## Status
 
-Functional and compatibility-tested, but not published yet. This is currently a home-lab project,
-not a claim of production maturity. It will continue to evolve as the implementation is measured,
-reviewed, and extended. The public API can hash byte arrays, streams, and files, parse canonical
-digests, and calculate TLSH difference scores. Publication is deliberately deferred while
-compatibility, performance, and future module boundaries are explored, so API changes are still
-possible.
+Version `0.1.0` is available from Maven Central. This remains a home-lab project, not a claim of
+production maturity. It will continue to evolve as the implementation is measured, reviewed, and
+extended. The public API can hash byte arrays, streams, and files, parse canonical digests, and
+calculate TLSH difference scores. API changes remain possible before `1.0.0` while performance and
+future module boundaries are explored.
 
 ## Requirements
 
 - JDK 25 (the Gradle toolchain also requests Java 25)
 - no globally installed Gradle; use the committed wrapper
+
+## Installation
+
+Gradle:
+
+```kotlin
+dependencies {
+    implementation("io.github.camilyed:tlsh-hasher:0.1.0")
+}
+```
+
+Maven:
+
+```xml
+<dependency>
+    <groupId>io.github.camilyed</groupId>
+    <artifactId>tlsh-hasher</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
 
 ## Usage
 
