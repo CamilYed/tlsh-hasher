@@ -142,7 +142,8 @@ final class InteractiveSimilarityAction implements InteractiveAction {
         false,
         preferences.maximumDistance(),
         preferences.ignoreLength(),
-        SimilarCommand.DEFAULT_MAXIMUM_COMPARISONS);
+        SimilarCommand.DEFAULT_MAXIMUM_COMPARISONS,
+        ProgressMode.ALWAYS);
   }
 
   /** Chooses singular or plural wording for a counter. */

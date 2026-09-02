@@ -3,6 +3,7 @@ package io.github.camilyed.tlsh.cli;
 import io.github.camilyed.tlsh.Tlsh;
 import io.github.camilyed.tlsh.TlshDigest;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -11,6 +12,12 @@ import java.util.List;
 
 /** Hashes each discovered file once and compares every unique pair within a bounded scan. */
 final class SimilarityScanUseCase {
+
+  private final SimilarityScanProgress progress;
+
+  SimilarityScanUseCase(final SimilarityScanProgress progress) {
+    this.progress = progress;
+  }
 
   /**
    * Finds pairs whose TLSH distance does not exceed the requested threshold.
@@ -37,11 +44,12 @@ final class SimilarityScanUseCase {
 
     final List<HashFailure> failures = discoveryFailures(discovery.failures());
     final List<HashedFile> hashedFiles = new ArrayList<>(discovery.inputs().size());
-    long processedBytes = 0L;
-    for (final HashInput input : discovery.inputs()) {
+    progress.startHashing(expectedBytes(discovery.inputs()), discovery.inputs().size());
+    for (int index = 0; index < discovery.inputs().size(); index++) {
+      final HashInput input = discovery.inputs().get(index);
+      progress.startFile(index + 1, input.displayName());
       try {
-        hashedFiles.add(new HashedFile(input.path(), Tlsh.hash(input.path())));
-        processedBytes = saturatingAdd(processedBytes, input.expectedBytes());
+        hashedFiles.add(new HashedFile(input.path(), hash(input)));
       } catch (final IOException
           | IllegalArgumentException
           | IllegalStateException
@@ -49,24 +57,31 @@ final class SimilarityScanUseCase {
         failures.add(
             new HashFailure(
                 input.displayName(), HashFailureDetail.explain(input.expectedBytes(), exception)));
+      } finally {
+        progress.finishFile();
       }
     }
 
-    final List<SimilarityMatch> matches = findMatches(hashedFiles, request);
+    final long comparisons = pairCount(hashedFiles.size());
+    progress.startComparing(comparisons);
+    final List<SimilarityMatch> matches = findMatches(hashedFiles, request, progress);
+    progress.finishComparing();
     return new SimilarityScanResult(
         List.copyOf(matches),
         List.copyOf(failures),
         discovery.inputs().size() + discovery.failures().size(),
         hashedFiles.size(),
         discovery.skippedHiddenEntries(),
-        pairCount(hashedFiles.size()),
-        processedBytes,
+        comparisons,
+        progress.processedBytes(),
         System.nanoTime() - startedAt);
   }
 
   /** Compares positions {@code i < j}, so a file is never compared with itself or twice. */
   private static List<SimilarityMatch> findMatches(
-      final List<HashedFile> files, final SimilarityScanRequest request) {
+      final List<HashedFile> files,
+      final SimilarityScanRequest request,
+      final SimilarityScanProgress progress) {
     final List<SimilarityMatch> matches = new ArrayList<>();
     for (int firstIndex = 0; firstIndex < files.size(); firstIndex++) {
       final HashedFile first = files.get(firstIndex);
@@ -76,6 +91,7 @@ final class SimilarityScanUseCase {
         if (distance <= request.maximumDistance()) {
           matches.add(new SimilarityMatch(distance, first.path(), second.path()));
         }
+        progress.advanceComparison();
       }
     }
     matches.sort(
@@ -94,6 +110,26 @@ final class SimilarityScanUseCase {
   /** Calculates a triangular number in {@code long}, safely covering every Java list size. */
   static long pairCount(final int fileCount) {
     return (long) fileCount * (fileCount - 1L) / 2L;
+  }
+
+  /** Streams one file through the hasher while reporting actual byte reads. */
+  private TlshDigest hash(final HashInput input) throws IOException {
+    try (InputStream file = Files.newInputStream(input.path());
+        CountingInputStream counting = new CountingInputStream(file, progress::advanceBytes)) {
+      return Tlsh.hash(counting);
+    }
+  }
+
+  /** Sums discovered file sizes without allowing an extreme directory to overflow. */
+  private static long expectedBytes(final List<HashInput> inputs) {
+    long total = 0L;
+    for (final HashInput input : inputs) {
+      if (Long.MAX_VALUE - total < input.expectedBytes()) {
+        return Long.MAX_VALUE;
+      }
+      total += input.expectedBytes();
+    }
+    return total;
   }
 
   /** Rejects nonsensical limits before discovering or reading files. */
@@ -117,11 +153,6 @@ final class SimilarityScanUseCase {
       failures.add(new HashFailure(failure.inputName(), failure.detail()));
     }
     return failures;
-  }
-
-  /** Adds byte counts without allowing an extreme directory to wrap into a negative number. */
-  private static long saturatingAdd(final long total, final long value) {
-    return Long.MAX_VALUE - total < value ? Long.MAX_VALUE : total + value;
   }
 
   /** Keeps a source path beside the digest calculated from it. */

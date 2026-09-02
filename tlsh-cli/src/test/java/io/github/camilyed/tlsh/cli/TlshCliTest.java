@@ -72,7 +72,8 @@ final class TlshCliTest extends CliTestSupport {
             "Each file is hashed once",
             "Distance 0 means equal TLSH digests",
             "--max-distance=N",
-            "--max-comparisons=N");
+            "--max-comparisons=N",
+            "ALWAYS forces progress");
     assertThat(error()).isEmpty();
   }
 }

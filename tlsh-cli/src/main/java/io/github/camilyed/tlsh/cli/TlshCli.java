@@ -164,8 +164,9 @@ public final class TlshCli implements Callable<Integer>, AutoCloseable {
 
   /** Finds related files through the use case shared by command and interactive adapters. */
   int findSimilar(final SimilarityScanRequest request) {
-    try {
-      final SimilarityScanResult result = new SimilarityScanUseCase().execute(request);
+    try (SimilarityScanProgress progress =
+        SimilarityScanProgress.create(request.progressMode(), terminal, error)) {
+      final SimilarityScanResult result = new SimilarityScanUseCase(progress).execute(request);
       new SimilarityScanReporter(output, error, terminal).print(result);
       return result.failures().isEmpty() ? SUCCESS : DATA_ERROR;
     } catch (final SimilarityScanLimitException | IllegalArgumentException exception) {

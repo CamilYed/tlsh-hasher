@@ -140,7 +140,8 @@ neither a percentage nor proof of byte-for-byte equality.
 `DISTANCE  FIRST_PATH  SECOND_PATH`, ordered by distance and then path. The default maximum distance
 is zero; choose a threshold deliberately for a particular data set. Because an all-pairs scan grows
 as `n * (n - 1) / 2`, the command refuses more than 1,000,000 comparisons unless
-`--max-comparisons` is raised explicitly.
+`--max-comparisons` is raised explicitly. Its terminal progress has separate `Hashing files` and
+`Comparing digests` phases; `--progress=auto|always|never` follows the same policy as `hash`.
 
 Standard output remains a stable data stream: hash output contains the canonical digest, two
 spaces, and the input name; similar output contains a distance and two paths; and compare and

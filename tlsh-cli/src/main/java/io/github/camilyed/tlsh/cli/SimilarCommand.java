@@ -57,6 +57,16 @@ final class SimilarCommand implements Callable<Integer> {
       })
   private long maximumComparisons;
 
+  @Option(
+      names = "--progress",
+      defaultValue = "AUTO",
+      paramLabel = "MODE",
+      description = {
+        "Progress display: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE}).",
+        "AUTO requires a terminal; ALWAYS forces progress; NEVER disables it."
+      })
+  private ProgressMode progressMode;
+
   /** Validates numeric bounds and delegates the scan to the shared application use case. */
   @Override
   public Integer call() {
@@ -74,7 +84,8 @@ final class SimilarCommand implements Callable<Integer> {
             includeHidden,
             maximumDistance,
             ignoreLength,
-            maximumComparisons));
+            maximumComparisons,
+            progressMode));
   }
 
   /** Reports an expected option error without exposing an implementation stack trace. */

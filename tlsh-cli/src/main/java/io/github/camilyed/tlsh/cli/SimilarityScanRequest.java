@@ -9,4 +9,5 @@ record SimilarityScanRequest(
     boolean includeHidden,
     int maximumDistance,
     boolean ignoreLength,
-    long maximumComparisons) {}
+    long maximumComparisons,
+    ProgressMode progressMode) {}

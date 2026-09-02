@@ -23,7 +23,9 @@ final class SimilarCommandTest extends CliTestSupport {
 
     assertThat(exitCode).isZero();
     assertThat(output()).isEqualTo("0  " + first + "  " + second + System.lineSeparator());
-    assertThat(error()).contains("✓ 3 files hashed", "3 comparisons", "1 match", "12 KiB");
+    assertThat(error())
+        .contains("✓ 3 files hashed", "3 comparisons", "1 match", "12 KiB")
+        .doesNotContain("Hashing files", "Comparing digests");
   }
 
   @Test
@@ -122,6 +124,36 @@ final class SimilarCommandTest extends CliTestSupport {
 
     assertThat(comparisonsExitCode).isEqualTo(TlshCli.DATA_ERROR);
     assertThat(error()).contains("--max-comparisons must be zero or greater");
+  }
+
+  @Test
+  void shouldRenderBothProgressPhasesWithoutPollutingMatchOutput(@TempDir final Path directory)
+      throws IOException {
+    final byte[] input = deterministicInput();
+    final Path first = Files.write(directory.resolve("first.bin"), input);
+    final Path second = Files.write(directory.resolve("second.bin"), input);
+
+    final int exitCode =
+        cli(new byte[0]).execute("similar", "--progress=always", directory.toString());
+
+    assertThat(exitCode).isZero();
+    assertThat(output()).isEqualTo("0  " + first + "  " + second + System.lineSeparator());
+    assertThat(error())
+        .contains("Hashing files", "100%", "2/2", "Comparing digests", "1/1 pairs", "1 match");
+  }
+
+  @Test
+  void shouldCompleteComparisonProgressWhenOnlyOneFileIsUsable(@TempDir final Path directory)
+      throws IOException {
+    Files.write(directory.resolve("only.bin"), deterministicInput());
+
+    final int exitCode =
+        cli(new byte[0]).execute("similar", "--progress=always", directory.toString());
+
+    assertThat(exitCode).isZero();
+    assertThat(output()).isEmpty();
+    assertThat(error())
+        .contains("Hashing files", "Comparing digests", "100%", "0/0 pairs", "0 matches");
   }
 
   @Test

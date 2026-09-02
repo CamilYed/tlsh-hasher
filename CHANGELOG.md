@@ -30,6 +30,7 @@ All notable changes to this project are documented here. The format loosely foll
   user guide, with expanded generated help text.
 - Find similar files in command and guided modes with deterministic pair ordering, inclusive
   distance thresholds, single-pass hashing, partial-failure reporting, and an all-pairs cost limit.
+- Show separate byte-hashing and digest-comparison progress phases during similar-file scans.
 
 ### Changed
 

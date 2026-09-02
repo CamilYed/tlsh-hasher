@@ -99,7 +99,9 @@ visits indices `i < j`. This avoids re-reading files and guarantees that self-pa
 duplicates are absent. Results are ordered by distance and then path. The maximum distance is
 inclusive and defaults to zero. Because there are `n * (n - 1) / 2` pairs, discovery calculates the
 cost before file contents are read and refuses more than 1,000,000 comparisons unless an explicit
-command raises the guardrail.
+command raises the guardrail. A progress observer keeps presentation out of the matching rules: its
+first phase receives byte-read events while each file is hashed, and its second phase receives one
+event per unique digest pair. Both transient lines remain on standard error.
 
 ## Distribution stages
 

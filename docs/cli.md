@@ -145,7 +145,8 @@ equality. The length question selects the same two distance modes as file compar
 Before reading the files, the preview shows both the number of files and the number of unique pairs.
 For example, 100 files require 4,950 comparisons. The interactive safety limit is 1,000,000 pairs.
 A larger selection is refused with an explanation; use the explicit command and deliberately raise
-its limit when that cost is acceptable.
+its limit when that cost is acceptable. After confirmation, `Hashing files` reports byte and file
+progress. `Comparing digests` then reports completed pairs and comparison throughput.
 
 ## Explicit commands
 
@@ -208,6 +209,9 @@ file is never compared with itself, and `(a, b)` is not repeated as `(b, a)`.
 | `--max-distance=N` | Include scores from zero through `N`, inclusive. The default is `0`. |
 | `--ignore-length` | Remove the approximate input-length contribution from every score. |
 | `--max-comparisons=N` | Refuse more than `N` unique pairs. The default is `1,000,000`. |
+| `--progress=auto` | Show both progress phases only when a terminal is attached. This is the default. |
+| `--progress=always` | Force progress, including in an IDE output window. |
+| `--progress=never` | Disable transient progress for quiet automation. |
 | `-h`, `--help` | Print command help and exit. |
 | `-V`, `--version` | Print the application version and exit. |
 
@@ -219,6 +223,8 @@ DISTANCE  FIRST_PATH  SECOND_PATH
 
 The summary and failed-file details use standard error. One unreadable or TLSH-ineligible file does
 not discard matches among the remaining files, but it makes the command return code `1`.
+Progress also uses standard error and has two phases: bytes and files while calculating digests,
+then completed pairs while comparing the successfully calculated digests.
 
 All-pairs work grows quadratically:
 
