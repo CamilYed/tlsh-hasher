@@ -9,11 +9,14 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.gradle.external.javadoc.JavadocMemberLevel
 import org.gradle.external.javadoc.StandardJavadocDocletOptions
+import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
 
 plugins {
     `java-library`
+    jacoco
     `maven-publish`
     signing
+    alias(libs.plugins.sonarqube)
     alias(libs.plugins.spotless)
 }
 
@@ -103,6 +106,10 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
+extensions.configure<JacocoPluginExtension> {
+    toolVersion = libs.versions.jacoco.get()
+}
+
 configurations.configureEach {
     resolutionStrategy {
         failOnDynamicVersions()
@@ -182,6 +189,7 @@ tasks.withType<Javadoc>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
 
     val officialFixtureDirectory = providers.systemProperty("tlsh.officialFixtureDirectory")
     if (officialFixtureDirectory.isPresent) {
@@ -199,6 +207,38 @@ tasks.test {
         showExceptions = true
         showCauses = true
         showStackTraces = true
+    }
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+}
+
+sonar {
+    properties {
+        property("sonar.projectKey", "CamilYed_tlsh-hasher")
+        property("sonar.organization", "camilyed")
+        property("sonar.host.url", "https://sonarcloud.io")
+        property(
+            "sonar.coverage.jacoco.xmlReportPaths",
+            listOf(
+                "build/reports/jacoco/test/jacocoTestReport.xml",
+                "tlsh-cli/build/reports/jacoco/test/jacocoTestReport.xml",
+            ).joinToString(","),
+        )
+        property(
+            "sonar.coverage.exclusions",
+            listOf(
+                "tlsh-benchmarks/**",
+                "tlsh-module-smoke-test/**",
+            ).joinToString(","),
+        )
     }
 }
 

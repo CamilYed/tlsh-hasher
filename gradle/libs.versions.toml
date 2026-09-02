@@ -1,11 +1,13 @@
 [versions]
 assertj = "3.27.7"
 java = "25"
+jacoco = "0.8.15"
 jmh = "1.37"
 jmh-plugin = "0.7.3"
 jline = "4.3.1"
 junit = "6.1.2"
 picocli = "4.7.7"
+sonarqube = "7.4.0.8496"
 spotless = "8.7.0"
 
 [libraries]
@@ -22,4 +24,5 @@ picocli-codegen = { module = "info.picocli:picocli-codegen", version.ref = "pico
 
 [plugins]
 jmh = { id = "me.champeau.jmh", version.ref = "jmh-plugin" }
+sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
