@@ -21,7 +21,7 @@ final class DistanceCommand implements Callable<Integer> {
 
   @Option(
       names = "--ignore-length",
-      description = "Compare digest features without the approximate input-length contribution.")
+      description = "Ignore the approximate file-size ranges stored in the two digests.")
   private boolean ignoreLength;
 
   @Parameters(index = "0", paramLabel = "FIRST", description = "First canonical T1 digest.")

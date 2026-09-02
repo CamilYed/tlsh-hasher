@@ -69,12 +69,16 @@ final class InteractiveSimilarityAction implements InteractiveAction {
     if (maximumDistance.isEmpty()) {
       return Optional.empty();
     }
-    final String ignoreLengthAnswer = prompter.answer("Ignore input-length difference? [y/N]: ");
-    if (ignoreLengthAnswer == null) {
+    prompter.hint(
+        "TLSH stores file size as an approximate range; a different range normally raises the score.");
+    final String includeSizeAnswer =
+        prompter.answer("Include approximate file-size difference in score? [Y/n]: ");
+    if (includeSizeAnswer == null) {
       return Optional.empty();
     }
     return Optional.of(
-        new SimilarityPreferences(maximumDistance.orElseThrow(), prompter.yes(ignoreLengthAnswer)));
+        new SimilarityPreferences(
+            maximumDistance.orElseThrow(), !prompter.yesByDefault(includeSizeAnswer)));
   }
 
   /** Parses a nonnegative distance; zero is intentionally the safest default. */

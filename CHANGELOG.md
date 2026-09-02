@@ -41,3 +41,5 @@ All notable changes to this project are documented here. The format loosely foll
   file-comparison use cases between Picocli and JLine adapters.
 - Split the CLI integration suite by workflow and share only deterministic stream, input, and
   terminal fixtures.
+- Describe TLSH's encoded length component as an approximate file-size range in API documentation,
+  help, and guided questions.

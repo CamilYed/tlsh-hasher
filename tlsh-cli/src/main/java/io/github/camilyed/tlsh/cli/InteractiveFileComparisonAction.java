@@ -30,9 +30,14 @@ final class InteractiveFileComparisonAction implements InteractiveAction {
     if (second.isEmpty()) {
       return;
     }
-    prompter.hint("TLSH normally includes an approximate input-length contribution in the score.");
-    final boolean ignoreLength =
-        prompter.yes(prompter.answer("Ignore input-length difference? [y/N]: "));
+    prompter.hint(
+        "TLSH stores file size as an approximate range; a different range normally raises the score.");
+    final String includeSizeAnswer =
+        prompter.answer("Include approximate file-size difference in score? [Y/n]: ");
+    if (includeSizeAnswer == null) {
+      return;
+    }
+    final boolean ignoreLength = !prompter.yesByDefault(includeSizeAnswer);
 
     try {
       final FileComparison comparison =
@@ -79,7 +84,7 @@ final class InteractiveFileComparisonAction implements InteractiveAction {
     prompter.heading("Comparison");
     prompter.line(
         "  Distance  " + prompter.style().accent(Integer.toString(comparison.distance())));
-    prompter.line("  Length    " + (comparison.ignoredLength() ? "ignored" : "included"));
+    prompter.line("  File size " + (comparison.ignoredLength() ? "ignored" : "included"));
     printDigest("First", comparison.firstPath(), comparison.firstDigest().encoded());
     printDigest("Second", comparison.secondPath(), comparison.secondDigest().encoded());
     prompter.hint(

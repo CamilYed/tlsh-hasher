@@ -44,7 +44,7 @@ final class SimilarCommand implements Callable<Integer> {
 
   @Option(
       names = "--ignore-length",
-      description = "Exclude the approximate input-length contribution from each distance.")
+      description = "Ignore the approximate file-size ranges stored in the digests.")
   private boolean ignoreLength;
 
   @Option(

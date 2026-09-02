@@ -6,6 +6,7 @@ import io.github.camilyed.tlsh.Tlsh;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -135,7 +136,7 @@ final class InteractiveShellTest extends CliTestSupport {
             "Compare two files",
             "Comparison",
             "Distance  " + expectedDistance,
-            "Length    included",
+            "File size included",
             firstPath.toString(),
             secondPath.toString(),
             Tlsh.hash(firstInput).encoded(),
@@ -147,8 +148,28 @@ final class InteractiveShellTest extends CliTestSupport {
             "Choose an action [1]: ",
             "First file: ",
             "Second file: ",
-            "Ignore input-length difference? [y/N]: ",
+            "Include approximate file-size difference in score? [Y/n]: ",
             "Choose an action [1]: ");
+  }
+
+  @Test
+  void shouldIgnoreApproximateFileSizeWhenTheInteractiveAnswerIsNo(@TempDir final Path directory)
+      throws IOException {
+    final byte[] firstInput = deterministicInput();
+    final byte[] secondInput = Arrays.copyOf(firstInput, firstInput.length * 2);
+    final Path firstPath = Files.write(directory.resolve("first.bin"), firstInput);
+    final Path secondPath = Files.write(directory.resolve("second.bin"), secondInput);
+    final int expectedDistance =
+        Tlsh.hash(firstInput).distanceToIgnoringLength(Tlsh.hash(secondInput));
+    final ScriptedTerminal terminal =
+        new ScriptedTerminal("3", firstPath.toString(), secondPath.toString(), "n", "5");
+
+    final int exitCode = interactiveCli(new byte[0], terminal).execute();
+
+    assertThat(exitCode).isZero();
+    assertThat(output()).contains("Distance  " + expectedDistance, "File size ignored", "Bye.");
+    assertThat(terminal.prompts())
+        .contains("Include approximate file-size difference in score? [Y/n]: ");
   }
 
   @Test
@@ -178,7 +199,7 @@ final class InteractiveShellTest extends CliTestSupport {
             "Folder path: ",
             "Choose scope [1]: ",
             "Maximum TLSH distance [0]: ",
-            "Ignore input-length difference? [y/N]: ",
+            "Include approximate file-size difference in score? [Y/n]: ",
             "Start similarity scan? [Y/n]: ",
             "Choose an action [1]: ");
   }

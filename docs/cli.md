@@ -118,13 +118,15 @@ cannot be lost among many results.
 `First file:` and `Second file:` select two regular files. The application then asks:
 
 ```text
-Ignore input-length difference? [y/N]:
+Include approximate file-size difference in score? [Y/n]:
 ```
 
-TLSH normally includes a contribution derived from the files' approximate encoded lengths. The
-default answer `n` keeps that contribution. Answer `y` or `yes` to compare only the remaining digest
-features. Ignoring length can be useful when content patterns matter more than the size change, but
-it is a different distance mode and should not be mixed with length-aware scores.
+TLSH does not store the exact byte count in a digest. It stores a compact code identifying an
+approximate file-size range. The default answer `y` includes a penalty when the two files belong to
+different size ranges. Answer `n` or `no` to ignore only that penalty and compare the checksum,
+quartile ratios, and local-pattern histogram. Ignoring size can be useful for longer and shorter
+versions of related content, but it is a different distance mode and should not be mixed with
+size-aware scores.
 
 The result displays both paths, both complete `T1` digests, the selected mode, and the numeric
 distance. The CLI deliberately does not label one universal score as "similar" or "different".
@@ -135,12 +137,12 @@ This action selects a folder and traversal scope just like **Hash a folder**, th
 
 ```text
 Maximum TLSH distance [0]:
-Ignore input-length difference? [y/N]:
+Include approximate file-size difference in score? [Y/n]:
 ```
 
 The maximum is inclusive: a value of `100` reports pairs whose distance is between `0` and `100`.
 Zero is the cautious default and means equal TLSH digests; it still does not prove byte-for-byte
-equality. The length question selects the same two distance modes as file comparison.
+equality. The file-size question selects the same two distance modes as file comparison.
 
 Before reading the files, the preview shows both the number of files and the number of unique pairs.
 For example, 100 files require 4,950 comparisons. The interactive safety limit is 1,000,000 pairs.
@@ -207,7 +209,7 @@ file is never compared with itself, and `(a, b)` is not repeated as `(b, a)`.
 | `-r`, `--recursive` | Include nested directories. Symbolic directories remain excluded. |
 | `--include-hidden` | Include hidden files and descend into hidden directories. |
 | `--max-distance=N` | Include scores from zero through `N`, inclusive. The default is `0`. |
-| `--ignore-length` | Remove the approximate input-length contribution from every score. |
+| `--ignore-length` | Ignore the approximate file-size ranges stored in the digests. |
 | `--max-comparisons=N` | Refuse more than `N` unique pairs. The default is `1,000,000`. |
 | `--progress=auto` | Show both progress phases only when a terminal is attached. This is the default. |
 | `--progress=always` | Force progress, including in an IDE output window. |
@@ -249,9 +251,10 @@ is the script-oriented counterpart of the guided file comparison.
 score=$(tlsh compare original.bin changed.bin)
 ```
 
-`--ignore-length` removes the encoded input-length contribution. Either file can fail because it is
-missing, not regular, unreadable, outside the supported length range, or insufficiently varied. The
-diagnostic identifies the failing path and the process exits with code `1`.
+`--ignore-length` ignores the approximate file-size ranges stored in the digests. Either file can
+fail because it is missing, not regular, unreadable, outside the supported length range, or
+insufficiently varied. The diagnostic identifies the failing path and the process exits with code
+`1`.
 
 ### `tlsh distance`
 

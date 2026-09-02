@@ -79,6 +79,11 @@ The difference is a nonnegative score, not a percentage or probability. Smaller 
 greater similarity. Interpretation depends on the data and use case, so this library does not label
 one universal score as "similar" or "different."
 
+TLSH stores the input's exact byte count only as a compact approximate size range. The normal
+`distanceTo` score includes a penalty when two digests represent different ranges.
+`distanceToIgnoringLength` removes only that size penalty; checksum, quartile ratios, and the
+local-pattern histogram are still compared.
+
 ## Command-line application
 
 The non-published `tlsh-cli` module provides a named JPMS command-line application. Build its local

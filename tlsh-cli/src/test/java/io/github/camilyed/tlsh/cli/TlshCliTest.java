@@ -48,7 +48,7 @@ final class TlshCliTest extends CliTestSupport {
         .contains(
             "Hash two regular files",
             "score is not a percentage",
-            "without the approximate input-length contribution");
+            "approximate file-size ranges stored in the two digests");
 
     createOutputStreams();
     final int distanceExitCode = cli(new byte[0]).execute("distance", "--help");

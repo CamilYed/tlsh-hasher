@@ -116,6 +116,10 @@ public record TlshDigest(int checksum, int lengthCode, int quartileRatios, byte[
   /**
    * Calculates the TLSH difference score including the encoded input lengths.
    *
+   * <p>A TLSH digest does not store the exact number of bytes. It stores a compact code identifying
+   * an approximate size range. Including this component means that files from different size ranges
+   * receive an additional penalty even when their local-pattern histograms are similar.
+   *
    * <p>The result is not a percentage or probability. Lower values indicate greater similarity, and
    * comparing a digest with itself returns zero.
    *
@@ -130,10 +134,11 @@ public record TlshDigest(int checksum, int lengthCode, int quartileRatios, byte[
   /**
    * Calculates the TLSH difference score without comparing the encoded input lengths.
    *
-   * <p>This variant is useful when inputs can contain similar content at substantially different
-   * sizes and the caller deliberately wants to compare their checksum, quartile ratios, and
-   * histogram only. The result remains a TLSH difference score rather than a percentage or
-   * probability.
+   * <p>This method ignores only the compact approximate file-size ranges. It still compares the
+   * checksum, quartile ratios, and local-pattern histogram. This variant is useful when one file
+   * may contain a longer or shorter version of related content and that overall size difference
+   * should not raise the score. The result remains a TLSH difference score rather than a percentage
+   * or probability.
    *
    * @param other digest to compare with this digest
    * @return nonnegative TLSH difference score without a length contribution
