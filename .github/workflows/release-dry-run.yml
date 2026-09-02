@@ -1,0 +1,137 @@
+name: Release dry run
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Candidate version, for example 0.1.0
+        required: true
+        default: "0.1.0"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify-release:
+    name: Build and verify signed release bundle
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Checkout official TLSH 5.0.0 fixtures
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: trendmicro/tlsh
+          ref: 5.0.0
+          path: .reference/tlsh
+          persist-credentials: false
+          sparse-checkout: Testing
+
+      - name: Set up Java
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@90ddb51e90a5fd9ba75f40cf85156b7b41bf76a3 # v6
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Validate dry-run inputs
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if ! printf '%s' "$RELEASE_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$'; then
+            echo "Invalid candidate version: $RELEASE_VERSION"
+            exit 1
+          fi
+
+          if printf '%s' "$RELEASE_VERSION" | grep -qi 'SNAPSHOT'; then
+            echo "Candidate version must not contain SNAPSHOT: $RELEASE_VERSION"
+            exit 1
+          fi
+
+          if [ -z "$SIGNING_KEY" ] || [ -z "$SIGNING_PASSWORD" ]; then
+            echo "SIGNING_KEY and SIGNING_PASSWORD repository secrets are required."
+            exit 1
+          fi
+
+      - name: Verify formatting, tests, compatibility, and Javadoc
+        run: >-
+          ./gradlew
+          -Dtlsh.officialFixtureDirectory=${{ github.workspace }}/.reference/tlsh/Testing/example_data
+          spotlessCheck clean build
+          "-PreleaseVersion=$RELEASE_VERSION"
+
+      - name: Stage signed Maven publication
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: >-
+          ./gradlew
+          signMavenJavaPublication
+          publishMavenJavaPublicationToLocalBuildRepository
+          "-PreleaseVersion=$RELEASE_VERSION"
+
+      - name: Verify staged artifacts and signatures
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+
+          STAGING_DIRECTORY="build/staging-deploy/io/github/camilyed/tlsh-hasher/$RELEASE_VERSION"
+          test -d "$STAGING_DIRECTORY"
+
+          JAR_COUNT="$(find "$STAGING_DIRECTORY" -maxdepth 1 -name '*.jar' -type f | wc -l | tr -d ' ')"
+          POM_COUNT="$(find "$STAGING_DIRECTORY" -maxdepth 1 -name '*.pom' -type f | wc -l | tr -d ' ')"
+          MODULE_COUNT="$(find "$STAGING_DIRECTORY" -maxdepth 1 -name '*.module' -type f | wc -l | tr -d ' ')"
+          SIGNATURE_COUNT="$(find "$STAGING_DIRECTORY" -maxdepth 1 -name '*.asc' -type f | wc -l | tr -d ' ')"
+
+          test "$JAR_COUNT" -eq 3
+          test "$POM_COUNT" -eq 1
+          test "$MODULE_COUNT" -eq 1
+          test "$SIGNATURE_COUNT" -eq 5
+
+          printf '%s' "$SIGNING_KEY" | gpg --batch --import
+          gpg --batch --with-colons --fingerprint A297CD5F1C6859C3E88C3868872646072BBE5586 \
+            | grep -q 'A297CD5F1C6859C3E88C3868872646072BBE5586'
+
+          for artifact in "$STAGING_DIRECTORY"/*.jar "$STAGING_DIRECTORY"/*.pom "$STAGING_DIRECTORY"/*.module; do
+            test -f "$artifact.asc"
+            gpg --batch --verify "$artifact.asc" "$artifact"
+          done
+
+      - name: Create candidate bundle
+        run: |
+          set -euo pipefail
+
+          cd build/staging-deploy
+          find "io/github/camilyed/tlsh-hasher/$RELEASE_VERSION" -type f \
+            | LC_ALL=C sort \
+            | zip -@ "$GITHUB_WORKSPACE/build/central-bundle-$RELEASE_VERSION.zip"
+
+          sha256sum "$GITHUB_WORKSPACE/build/central-bundle-$RELEASE_VERSION.zip"
+
+          {
+            echo "### Release dry run $RELEASE_VERSION"
+            echo
+            echo "Signed bundle built and verified. Nothing was published externally."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload candidate bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: central-bundle-${{ env.RELEASE_VERSION }}
+          path: build/central-bundle-${{ env.RELEASE_VERSION }}.zip
+          if-no-files-found: error
+          retention-days: 7

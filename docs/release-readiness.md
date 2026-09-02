@@ -30,6 +30,17 @@ The local staging command is:
 This command writes only under `build`; it does not publish externally. Signing is intentionally
 skipped for this local repository.
 
+The manually triggered `Release dry run` GitHub Actions workflow performs the complete test suite,
+creates a non-snapshot signed staging repository, verifies every detached signature, and uploads a
+candidate Central Portal ZIP as a seven-day workflow artifact. It has read-only repository
+permissions and never contacts a publishing endpoint.
+
+Run it from the GitHub Actions page or with:
+
+```shell
+gh workflow run release-dry-run.yml -f version=0.1.0
+```
+
 ## Release signing identity
 
 TLSH Hasher releases use a dedicated RSA 3072-bit primary signing key. The public identity is
