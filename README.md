@@ -1,6 +1,9 @@
 # TLSH Hasher
 
 [![CI](https://github.com/CamilYed/tlsh-hasher/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/CamilYed/tlsh-hasher/actions/workflows/ci.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=CamilYed_tlsh-hasher&metric=alert_status)](https://sonarcloud.io/summary/overall?id=CamilYed_tlsh-hasher)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=CamilYed_tlsh-hasher&metric=coverage)](https://sonarcloud.io/summary/overall?id=CamilYed_tlsh-hasher)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.camilyed/tlsh-hasher?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.camilyed/tlsh-hasher)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-25-blue.svg)](https://openjdk.org/projects/jdk/25/)
 [![Status](https://img.shields.io/badge/status-functional%20%2F%20pre--release-orange.svg)](#status)
