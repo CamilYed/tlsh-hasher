@@ -41,6 +41,23 @@ Run it from the GitHub Actions page or with:
 gh workflow run release-dry-run.yml -f version=0.1.0
 ```
 
+## Central Portal staging
+
+The manually triggered `Stage Maven Central release` workflow repeats the dry-run checks and then
+uploads the verified ZIP to the Central Publisher Portal with the `USER_MANAGED` publishing type.
+It waits for the portal to validate the candidate, but it cannot publish the candidate, create a Git
+tag, or create a GitHub Release. Those irreversible release steps require a separate decision after
+the validated deployment has been inspected in the portal.
+
+Run it only from `main`, using the intended immutable release version:
+
+```shell
+gh workflow run release.yml --ref main -f version=0.1.0
+```
+
+The completed workflow summary contains the Central Portal deployment ID. A `VALIDATED` deployment
+is still private and can either be tested and published or dropped from the portal.
+
 ## Release signing identity
 
 TLSH Hasher releases use a dedicated RSA 3072-bit primary signing key. The public identity is
@@ -60,7 +77,6 @@ encrypted private-key backup and the revocation certificate must remain outside 
 
 - Stabilize the public construction API after the implementation-module decision.
 - Decide the final artifact IDs and JPMS module names before the first non-snapshot release.
-- Add the real remote repository configuration only when a publication target has been selected.
 - Verify generated signatures and all files in the final staging repository.
 - Test consumption with both Gradle and Maven using the final release coordinates.
 - Run the complete compatibility suite, including the official TLSH 5.0.0 corpus.

@@ -1,0 +1,238 @@
+name: Stage Maven Central release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release candidate version, for example 0.1.0
+        required: true
+        default: "0.1.0"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  stage-release:
+    name: Build, sign, and stage Maven Central release
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Checkout official TLSH 5.0.0 fixtures
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: trendmicro/tlsh
+          ref: 5.0.0
+          path: .reference/tlsh
+          persist-credentials: false
+          sparse-checkout: Testing
+
+      - name: Set up Java
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@90ddb51e90a5fd9ba75f40cf85156b7b41bf76a3 # v6
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Validate release inputs and secrets
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Release candidates must be built from main; current ref is $GITHUB_REF."
+            exit 1
+          fi
+
+          if ! printf '%s' "$RELEASE_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$'; then
+            echo "Invalid release version: $RELEASE_VERSION"
+            exit 1
+          fi
+
+          if printf '%s' "$RELEASE_VERSION" | grep -qi 'SNAPSHOT'; then
+            echo "Release version must not contain SNAPSHOT: $RELEASE_VERSION"
+            exit 1
+          fi
+
+          if [ -z "$CENTRAL_USERNAME" ] || [ -z "$CENTRAL_PASSWORD" ]; then
+            echo "CENTRAL_USERNAME and CENTRAL_PASSWORD repository secrets are required."
+            exit 1
+          fi
+
+          if [ -z "$SIGNING_KEY" ] || [ -z "$SIGNING_PASSWORD" ]; then
+            echo "SIGNING_KEY and SIGNING_PASSWORD repository secrets are required."
+            exit 1
+          fi
+
+      - name: Verify formatting, tests, compatibility, and Javadoc
+        run: >-
+          ./gradlew
+          -Dtlsh.officialFixtureDirectory=${{ github.workspace }}/.reference/tlsh/Testing/example_data
+          spotlessCheck clean build
+          "-PreleaseVersion=$RELEASE_VERSION"
+
+      - name: Stage signed Maven publication
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: >-
+          ./gradlew
+          signMavenJavaPublication
+          publishMavenJavaPublicationToLocalBuildRepository
+          "-PreleaseVersion=$RELEASE_VERSION"
+
+      - name: Verify staged artifacts and signatures
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+
+          STAGING_DIRECTORY="build/staging-deploy/io/github/camilyed/tlsh-hasher/$RELEASE_VERSION"
+          test -d "$STAGING_DIRECTORY"
+
+          JAR_COUNT="$(find "$STAGING_DIRECTORY" -maxdepth 1 -name '*.jar' -type f | wc -l | tr -d ' ')"
+          POM_COUNT="$(find "$STAGING_DIRECTORY" -maxdepth 1 -name '*.pom' -type f | wc -l | tr -d ' ')"
+          MODULE_COUNT="$(find "$STAGING_DIRECTORY" -maxdepth 1 -name '*.module' -type f | wc -l | tr -d ' ')"
+          SIGNATURE_COUNT="$(find "$STAGING_DIRECTORY" -maxdepth 1 -name '*.asc' -type f | wc -l | tr -d ' ')"
+
+          test "$JAR_COUNT" -eq 3
+          test "$POM_COUNT" -eq 1
+          test "$MODULE_COUNT" -eq 1
+          test "$SIGNATURE_COUNT" -eq 5
+
+          printf '%s' "$SIGNING_KEY" | gpg --batch --import
+          gpg --batch --with-colons --fingerprint A297CD5F1C6859C3E88C3868872646072BBE5586 \
+            | grep -q 'A297CD5F1C6859C3E88C3868872646072BBE5586'
+
+          for artifact in "$STAGING_DIRECTORY"/*.jar "$STAGING_DIRECTORY"/*.pom "$STAGING_DIRECTORY"/*.module; do
+            test -f "$artifact.asc"
+            gpg --batch --verify "$artifact.asc" "$artifact"
+          done
+
+      - name: Create and verify Central Portal bundle
+        run: |
+          set -euo pipefail
+
+          EXPECTED_PATH="io/github/camilyed/tlsh-hasher/$RELEASE_VERSION"
+          BUNDLE="$GITHUB_WORKSPACE/build/central-bundle-$RELEASE_VERSION.zip"
+
+          cd build/staging-deploy
+          find "$EXPECTED_PATH" -type f \
+            | LC_ALL=C sort \
+            | zip -@ "$BUNDLE"
+
+          test "$(unzip -Z1 "$BUNDLE" | wc -l | tr -d ' ')" -eq 10
+          if unzip -Z1 "$BUNDLE" | grep -v "^$EXPECTED_PATH/" | grep -q .; then
+            echo "Bundle contains entries outside $EXPECTED_PATH."
+            exit 1
+          fi
+
+          if unzip -Z1 "$BUNDLE" | grep -q 'SNAPSHOT'; then
+            echo "Bundle contains snapshot artifacts."
+            exit 1
+          fi
+
+          sha256sum "$BUNDLE"
+
+      - name: Retain verified Central Portal bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: central-bundle-${{ env.RELEASE_VERSION }}
+          path: build/central-bundle-${{ env.RELEASE_VERSION }}.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload bundle for user-managed validation
+        id: central-upload
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          TOKEN="$(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_PASSWORD" | base64 | tr -d '\n')"
+          DEPLOYMENT_ID="$(
+            curl --silent --show-error --fail-with-body \
+              --request POST \
+              --header "Authorization: Bearer $TOKEN" \
+              --form "bundle=@build/central-bundle-$RELEASE_VERSION.zip;type=application/octet-stream" \
+              "https://central.sonatype.com/api/v1/publisher/upload?name=tlsh-hasher-$RELEASE_VERSION&publishingType=USER_MANAGED" \
+              | tr -d '\r\n'
+          )"
+
+          if ! printf '%s' "$DEPLOYMENT_ID" \
+            | grep -Eq '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'; then
+            echo "Central Portal did not return a valid deployment ID."
+            exit 1
+          fi
+
+          echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
+          echo "### Maven Central candidate $RELEASE_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo "Deployment ID: \`$DEPLOYMENT_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Publishing mode: \`USER_MANAGED\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Wait for Central Portal validation
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          DEPLOYMENT_ID: ${{ steps.central-upload.outputs.deployment_id }}
+        run: |
+          set -euo pipefail
+
+          TOKEN="$(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_PASSWORD" | base64 | tr -d '\n')"
+
+          for attempt in $(seq 1 60); do
+            RESPONSE="$(
+              curl --silent --show-error --fail-with-body \
+                --request POST \
+                --header "Authorization: Bearer $TOKEN" \
+                "https://central.sonatype.com/api/v1/publisher/status?id=$DEPLOYMENT_ID"
+            )"
+            STATE="$(
+              printf '%s' "$RESPONSE" \
+                | python3 -c 'import json, sys; print(json.load(sys.stdin).get("deploymentState", "UNKNOWN"))'
+            )"
+
+            echo "Central Portal deployment state: $STATE (attempt $attempt/60)"
+
+            if [ "$STATE" = "VALIDATED" ]; then
+              {
+                echo
+                echo "The candidate passed Central Portal validation."
+                echo "Review deployment \`$DEPLOYMENT_ID\` in Central Portal."
+                echo "Nothing has been published to Maven Central yet."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+
+            if [ "$STATE" = "FAILED" ]; then
+              printf '%s\n' "$RESPONSE"
+              echo "Central Portal validation failed."
+              exit 1
+            fi
+
+            if [ "$STATE" = "PUBLISHING" ] || [ "$STATE" = "PUBLISHED" ]; then
+              echo "Unexpected state $STATE: this workflow only requests USER_MANAGED validation."
+              exit 1
+            fi
+
+            sleep 15
+          done
+
+          echo "Timed out while waiting for Central Portal validation."
+          exit 1
