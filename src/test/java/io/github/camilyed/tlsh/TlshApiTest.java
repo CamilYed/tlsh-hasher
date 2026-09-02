@@ -23,7 +23,7 @@ final class TlshApiTest {
     // then
     assertThat(digest.encoded())
         .isEqualTo("T10511A1808D0B3106EC1B03FE20B726CA2B2C3DB4C0B3DDE768024296D2134BA0AB30E4");
-    assertThat(digest.toString()).isEqualTo(digest.encoded());
+    assertThat(digest).hasToString(digest.encoded());
   }
 
   @Test

@@ -75,7 +75,7 @@ final class InteractiveFileHashAction implements InteractiveAction {
   private static String size(final Path path) {
     try {
       return HumanUnits.bytes(Files.size(path));
-    } catch (final IOException exception) {
+    } catch (final IOException _) {
       return "size unavailable";
     }
   }

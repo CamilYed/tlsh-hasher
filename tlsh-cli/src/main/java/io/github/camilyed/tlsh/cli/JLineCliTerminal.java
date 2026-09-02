@@ -60,7 +60,7 @@ final class JLineCliTerminal implements CliTerminal {
               .build();
       reader.getKeyMaps().get(LineReader.MAIN).bind(new Reference(LineReader.COMPLETE_WORD), "\t");
       return new JLineCliTerminal(terminal, reader, pathCompleter);
-    } catch (final IOException | RuntimeException exception) {
+    } catch (final IOException | RuntimeException _) {
       return CliTerminal.nonInteractive();
     }
   }
@@ -98,9 +98,9 @@ final class JLineCliTerminal implements CliTerminal {
   private String read(final String prompt) {
     try {
       return reader.readLine(prompt);
-    } catch (final UserInterruptException exception) {
+    } catch (final UserInterruptException _) {
       throw new InteractiveCancellationException();
-    } catch (final EndOfFileException exception) {
+    } catch (final EndOfFileException _) {
       return null;
     }
   }
@@ -110,7 +110,7 @@ final class JLineCliTerminal implements CliTerminal {
   public void close() {
     try {
       terminal.close();
-    } catch (final IOException exception) {
+    } catch (final IOException _) {
       // Closing the process terminal is best-effort; command results have already been produced.
     }
   }

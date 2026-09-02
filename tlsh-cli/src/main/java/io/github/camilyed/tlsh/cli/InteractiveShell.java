@@ -44,7 +44,7 @@ final class InteractiveShell {
             return TlshCli.SUCCESS;
           }
         }
-      } catch (final InteractiveCancellationException exception) {
+      } catch (final InteractiveCancellationException _) {
         prompter.line(prompter.style().muted("Cancelled."));
       }
       prompter.blankLine();

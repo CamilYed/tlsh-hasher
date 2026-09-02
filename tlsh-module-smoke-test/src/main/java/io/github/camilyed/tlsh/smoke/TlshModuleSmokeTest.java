@@ -15,12 +15,8 @@ public final class TlshModuleSmokeTest {
 
   private TlshModuleSmokeTest() {}
 
-  /**
-   * Verifies digest parsing, comparison, one-shot hashing, and incremental hashing.
-   *
-   * @param arguments ignored command-line arguments
-   */
-  static void main(final String[] arguments) {
+  /** Verifies digest parsing, comparison, one-shot hashing, and incremental hashing. */
+  static void main() {
     final TlshDigest first = TlshDigest.parse(FIRST_ENCODED_DIGEST);
     final TlshDigest second = TlshDigest.parse(SECOND_ENCODED_DIGEST);
     require(first.distanceTo(second) == 766, "distance including length");

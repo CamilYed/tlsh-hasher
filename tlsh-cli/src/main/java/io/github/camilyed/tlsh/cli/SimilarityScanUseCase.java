@@ -109,7 +109,7 @@ final class SimilarityScanUseCase {
 
   /** Calculates a triangular number in {@code long}, safely covering every Java list size. */
   static long pairCount(final int fileCount) {
-    return (long) fileCount * (fileCount - 1L) / 2L;
+    return fileCount * (fileCount - 1L) / 2L;
   }
 
   /** Streams one file through the hasher while reporting actual byte reads. */

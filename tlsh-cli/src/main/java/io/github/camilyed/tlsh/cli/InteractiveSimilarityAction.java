@@ -95,7 +95,7 @@ final class InteractiveSimilarityAction implements InteractiveAction {
       if (distance >= 0) {
         return Optional.of(distance);
       }
-    } catch (final NumberFormatException exception) {
+    } catch (final NumberFormatException _) {
       // The common message below deliberately avoids exposing parsing internals.
     }
     prompter.error("Distance must be a whole number equal to or greater than zero.");

@@ -43,6 +43,7 @@ public final class TlshCli implements Callable<Integer>, AutoCloseable {
   @Spec private CommandSpec commandSpec;
 
   /** Creates a CLI connected to the process standard streams. */
+  @SuppressWarnings("java:S106") // Standard streams are the CLI transport, not diagnostic logging.
   public TlshCli() {
     this(
         System.in,
@@ -112,7 +113,9 @@ public final class TlshCli implements Callable<Integer>, AutoCloseable {
   public static final class VersionProvider implements CommandLine.IVersionProvider {
 
     /** Creates the provider used reflectively by Picocli. */
-    public VersionProvider() {}
+    public VersionProvider() {
+      // Picocli instantiates the configured version provider through this public no-argument API.
+    }
 
     /** Returns a useful development label when classes are not running from a packaged JAR. */
     @Override
